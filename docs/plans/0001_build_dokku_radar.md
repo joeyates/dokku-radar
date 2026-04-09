@@ -63,16 +63,24 @@ automatically); `9110` is the fallback used in local/direct `docker run` usage.
       `9110` is the local/`docker run` fallback) and a `Req` base request
       configured for the Unix socket
 - [ ] Write `Dockerfile` — multi-stage: `elixir:1.18-alpine` builder producing a
-      Mix release; `alpine` runtime stage; `EXPOSE 9110`
+      Mix release; `alpine` runtime stage; `EXPOSE 9110`; include OCI labels
+      (`org.opencontainers.image.source`, `org.opencontainers.image.description`)
+      so GHCR links the image to the GitHub repository
 - [ ] Write `config/prometheus.yml` — scrape job `dokku_radar` targeting
       `dokku-radar.web.1:9110`; include a second optional job stub for
       `node_exporter`
 - [ ] Write `grafana/dashboard.json` — importable dashboard with panels:
       configured vs running process counts, container restart rate, SSL
       days-remaining timeline, last deploy timestamps
+- [ ] Write `.github/workflows/publish.yml` — GitHub Actions workflow that
+      builds and pushes the Docker image to
+      `ghcr.io/joeyates/dokku-radar` on every pushed tag matching `v*`;
+      uses `docker/build-push-action` with GHCR login via `GITHUB_TOKEN`
 - [ ] Write `README.md` — project landing page: one-paragraph description, a
       prerequisites list (Dokku installation with `dokku-network` plugin, git,
-      Docker), link to `docs/setup.md`, and a metrics reference table
+      Docker), link to `docs/setup.md`, a metrics reference table, and a
+      "Quick start" snippet showing
+      `dokku git:from-image dokku-radar ghcr.io/joeyates/dokku-radar:latest`
 - [ ] Write `prometheus/Dockerfile` — wraps the official `prom/prometheus`
       image and copies `config/prometheus.yml` into the image at
       `/etc/prometheus/prometheus.yml`; this is the canonical way to deliver
@@ -96,6 +104,7 @@ automatically); `9110` is the fallback used in local/direct `docker run` usage.
 - `config/prometheus.yml`
 - `grafana/dashboard.json`
 - `prometheus/Dockerfile`
+- `.github/workflows/publish.yml`
 - `README.md`
 - `docs/setup.md`
 
@@ -123,9 +132,11 @@ automatically); `9110` is the fallback used in local/direct `docker run` usage.
       name changes its internal network hostname and therefore the scrape target
       in `prometheus.yml`
   2. Create the `monitoring` Dokku network
-  3. Deploy and configure `dokku-radar`: volume mounts for Docker socket and
-     Dokku data dir, network attachment, and explicitly `dokku proxy:disable
-     dokku-radar` so it is never exposed publicly
+  3. Deploy `dokku-radar` from GHCR via
+     `dokku git:from-image dokku-radar ghcr.io/joeyates/dokku-radar:latest`;
+     configure volume mounts for Docker socket and Dokku data dir, network
+     attachment, and explicitly `dokku proxy:disable dokku-radar` so it is
+     never exposed publicly
   4. Deploy `prometheus` by git-pushing the `prometheus/` subdirectory
      (containing `Dockerfile` + `prometheus.yml`); attach storage mount for
      persistence; attach to `monitoring` network
