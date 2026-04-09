@@ -1,6 +1,6 @@
 # Build Dokku Radar — a Prometheus exporter for Dokku installations
 
-Status: [ ]
+Status: [x]
 
 ## Description
 
