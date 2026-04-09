@@ -72,7 +72,7 @@ automatically); `9110` is the fallback used in local/direct `docker run` usage.
 - [x] Write `grafana/dashboard.json` — importable dashboard with panels:
       configured vs running process counts, container restart rate, SSL
       days-remaining timeline, last deploy timestamps
-- [ ] Write `.github/workflows/publish.yml` — GitHub Actions workflow that
+- [x] Write `.github/workflows/publish.yml` — GitHub Actions workflow that
       builds and pushes the Docker image to
       `ghcr.io/joeyates/dokku-radar` on every pushed tag matching `v*`;
       uses `docker/build-push-action` with GHCR login via `GITHUB_TOKEN`
