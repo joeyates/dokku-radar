@@ -51,7 +51,7 @@ automatically); `9110` is the fallback used in local/direct `docker run` usage.
       `/var/lib/dokku/data/ps/` and SSL cert expiry from
       `/home/dokku/<app>/tls/` (prefers `server.letsencrypt.crt` over
       `server.crt`, matching `dokku letsencrypt:list` logic)
-- [ ] Implement `DokkuRadar.Collector` — coordinates Docker and filesystem
+- [x] Implement `DokkuRadar.Collector` — coordinates Docker and filesystem
       reads; maps raw data onto the metric structs defined in the plan
 - [ ] Implement `DokkuRadar.PrometheusFormatter` — serialises metric structs to
       Prometheus text exposition format (no external library; the format is

@@ -37,6 +37,22 @@ defmodule DokkuRadar.DockerClient do
     end
   end
 
+  @impl true
+  def container_inspect(container_id, opts \\ []) do
+    case opts
+         |> base_req()
+         |> Req.get(url: "/containers/:id/json", path_params: [id: container_id]) do
+      {:ok, %Req.Response{status: 200, body: body}} ->
+        {:ok, body}
+
+      {:ok, %Req.Response{status: status, body: body}} ->
+        {:error, {status, body}}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
   defp base_req(opts) do
     [
       base_url: "http://localhost",
