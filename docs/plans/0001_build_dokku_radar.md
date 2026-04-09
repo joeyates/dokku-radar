@@ -63,6 +63,13 @@ proxy (HTTPS via Let's Encrypt).
 - [ ] Write `grafana/dashboard.json` — importable dashboard with panels:
       configured vs running process counts, container restart rate, SSL
       days-remaining timeline, last deploy timestamps
+- [ ] Write `README.md` — project landing page: one-paragraph description, a
+      prerequisites list (Dokku installation with `dokku-network` plugin, git,
+      Docker), link to `docs/setup.md`, and a metrics reference table
+- [ ] Write `prometheus/Dockerfile` — wraps the official `prom/prometheus`
+      image and copies `config/prometheus.yml` into the image at
+      `/etc/prometheus/prometheus.yml`; this is the canonical way to deliver
+      Prometheus config as a Dokku app (git push, no manual volume editing)
 - [ ] Write `docs/setup.md` — complete self-hoster guide (see Acceptance
       Criteria)
 - [ ] Ask the user for feedback on the state of the implementation and carry out
@@ -81,6 +88,8 @@ proxy (HTTPS via Let's Encrypt).
 - `Dockerfile`
 - `config/prometheus.yml`
 - `grafana/dashboard.json`
+- `prometheus/Dockerfile`
+- `README.md`
 - `docs/setup.md`
 
 ## Acceptance Criteria
@@ -96,17 +105,35 @@ proxy (HTTPS via Let's Encrypt).
   beyond replacing the target hostname if the app name differs
 - `grafana/dashboard.json` imports via Grafana UI without errors and all panels
   display data
+- `README.md` states the prerequisites (working Dokku install, `dokku-network`
+  plugin enabled, git, Docker on the host) before any setup steps
 - `docs/setup.md` covers the entire setup path in order:
-  1. Create the `monitoring` Dokku network
-  2. Deploy and configure `dokku-radar` (volume mounts, network attachment, no
-     proxy)
-  3. Deploy and configure `prometheus` (storage mount, network attachment,
-     `prometheus.yml`)
-  4. Deploy and configure `grafana` (storage mount, import dashboard)
-  5. Verify the stack is working (sample `curl` commands against each app)
-  6. Optional next steps: expose `grafana` and `prometheus` via HTTPS, add
-     `node_exporter`
-  7. Document the HTTP availability gap: Dokku Radar confirms containers are
+  1. Prerequisites check — confirm Dokku version, network plugin, and that
+     the user can `git push` to the host
+  2. Create the `monitoring` Dokku network
+  3. Deploy and configure `dokku-radar`: volume mounts for Docker socket and
+     Dokku data dir, network attachment, and explicitly `dokku proxy:disable
+     dokku-radar` so it is never exposed publicly
+  4. Deploy `prometheus` by git-pushing the `prometheus/` subdirectory
+     (containing `Dockerfile` + `prometheus.yml`); attach storage mount for
+     persistence; attach to `monitoring` network
+  5. Deploy `grafana` from the official image; attach storage mount; attach to
+     `monitoring` network; show exact UI steps to add Prometheus as a
+     datasource (URL: `http://prometheus.web.1:9090`) and import
+     `grafana/dashboard.json` (Dashboards → New → Import → Upload JSON file)
+  6. Verify the stack: sample `curl` commands to `GET /health` and
+     `GET /metrics` on `dokku-radar`, and a check that Prometheus targets page
+     shows the exporter as UP
+  7. Troubleshooting section covering the three most common failures:
+     - Docker socket permission denied (add the app's container user to the
+       `docker` group, or adjust socket permissions)
+     - Prometheus cannot reach exporter (verify both apps are on the
+       `monitoring` network; check `dokku network:info monitoring`)
+     - Grafana datasource `Bad Gateway` (confirm Prometheus app is running and
+       the datasource URL uses the internal network hostname, not `localhost`)
+  8. Optional next steps: expose `grafana` and `prometheus` via HTTPS with
+     Let's Encrypt, add `node_exporter` for host-level metrics
+  9. Document the HTTP availability gap: Dokku Radar confirms containers are
      running but cannot verify that apps are responding correctly to HTTP
      requests. Recommend deploying
      [`blackbox_exporter`](https://github.com/prometheus/blackbox_exporter) as
