@@ -36,9 +36,9 @@ proxy (HTTPS via Let's Encrypt).
 ## Tasks
 
 - [ ] Initialise the Mix project (`dokku_radar`), OTP application skeleton, and
-      `mix.exs` with dependencies: `plug`, `bandit`, `finch` (for Docker socket
-      HTTP), `jason`
-- [ ] Implement `DokkuRadar.DockerClient` — a `Finch`-based HTTP client over the
+      `mix.exs` with dependencies: `plug`, `bandit`, `req` >= 0.5.17 (for
+      Docker socket HTTP), `jason`
+- [ ] Implement `DokkuRadar.DockerClient` — a `Req`-based HTTP client over the
       Unix socket at `/var/run/docker.sock`; expose `list_containers/0` and
       `container_stats/1`
 - [ ] Implement `DokkuRadar.FilesystemReader` — reads scale config from
@@ -54,7 +54,7 @@ proxy (HTTPS via Let's Encrypt).
 - [ ] Implement `DokkuRadar.Router` (Plug) with `GET /metrics` (calls Collector,
       returns `text/plain; charset=utf-8`) and `GET /health` (returns `200 ok`)
 - [ ] Wire up `DokkuRadar.Application` with a Bandit endpoint on port 9110 and a
-      Finch pool named `DokkuRadar.Finch` configured for the Unix socket
+      `Req` base request configured for the Unix socket
 - [ ] Write `Dockerfile` — multi-stage: `elixir:1.18-alpine` builder producing a
       Mix release; `alpine` runtime stage; `EXPOSE 9110`
 - [ ] Write `config/prometheus.yml` — scrape job `dokku_radar` targeting
