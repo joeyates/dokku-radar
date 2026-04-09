@@ -7,6 +7,7 @@ defmodule DokkuRadar.MixProject do
       version: "0.1.0",
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
+      aliases: aliases(),
       deps: deps()
     ]
   end
@@ -15,6 +16,12 @@ defmodule DokkuRadar.MixProject do
     [
       extra_applications: [:logger],
       mod: {DokkuRadar.Application, []}
+    ]
+  end
+
+  defp aliases() do
+    [
+      "check-formatted": ["format --check-formatted"]
     ]
   end
 
