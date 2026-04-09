@@ -41,48 +41,55 @@ automatically); `9110` is the fallback used in local/direct `docker run` usage.
 
 ## Tasks
 
-- [ ] Initialise the Mix project (`dokku_radar`), OTP application skeleton, and
+- [x] Initialise the Mix project (`dokku_radar`), OTP application skeleton, and
       `mix.exs` with dependencies: `plug`, `bandit`, `req` >= 0.5.17 (for
       Docker socket HTTP), `jason`
-- [ ] Implement `DokkuRadar.DockerClient` — a `Req`-based HTTP client over the
+- [x] Implement `DokkuRadar.DockerClient` — a `Req`-based HTTP client over the
       Unix socket at `/var/run/docker.sock`; expose `list_containers/0` and
       `container_stats/1`
-- [ ] Implement `DokkuRadar.FilesystemReader` — reads scale config from
-      `/var/lib/dokku/data/ps/` and SSL cert files from
-      `/var/lib/dokku/certs/` and
-      `/var/lib/dokku/data/letsencrypt/certs/` (handles both managed and
-      user-supplied cert cases)
-- [ ] Implement `DokkuRadar.Collector` — coordinates Docker and filesystem
+- [x] Implement `DokkuRadar.FilesystemReader` — reads scale config from
+      `/var/lib/dokku/data/ps/` and SSL cert expiry from
+      `/home/dokku/<app>/tls/` (prefers `server.letsencrypt.crt` over
+      `server.crt`, matching `dokku letsencrypt:list` logic)
+- [x] Implement `DokkuRadar.Collector` — coordinates Docker and filesystem
       reads; maps raw data onto the metric structs defined in the plan
-- [ ] Implement `DokkuRadar.PrometheusFormatter` — serialises metric structs to
+- [x] Implement `DokkuRadar.PrometheusFormatter` — serialises metric structs to
       Prometheus text exposition format (no external library; the format is
       simple enough to generate directly)
-- [ ] Implement `DokkuRadar.Router` (Plug) with `GET /metrics` (calls Collector,
+- [x] Implement `DokkuRadar.Router` (Plug) with `GET /metrics` (calls Collector,
       returns `text/plain; charset=utf-8`) and `GET /health` (returns `200 ok`)
-- [ ] Wire up `DokkuRadar.Application` with a Bandit endpoint on the port read
+- [x] Wire up `DokkuRadar.Application` with a Bandit endpoint on the port read
       from `System.get_env("PORT", "9110")` (Dokku injects `PORT` at runtime;
       `9110` is the local/`docker run` fallback) and a `Req` base request
       configured for the Unix socket
-- [ ] Write `Dockerfile` — multi-stage: `elixir:1.18-alpine` builder producing a
-      Mix release; `alpine` runtime stage; `EXPOSE 9110`
-- [ ] Write `config/prometheus.yml` — scrape job `dokku_radar` targeting
+- [x] Write `Dockerfile` — multi-stage: `elixir:1.18-alpine` builder producing a
+      Mix release; `alpine` runtime stage; `EXPOSE 9110`; include OCI labels
+      (`org.opencontainers.image.source`, `org.opencontainers.image.description`)
+      so GHCR links the image to the GitHub repository
+- [x] Write `config/prometheus.yml` — scrape job `dokku_radar` targeting
       `dokku-radar.web.1:9110`; include a second optional job stub for
       `node_exporter`
-- [ ] Write `grafana/dashboard.json` — importable dashboard with panels:
+- [x] Write `grafana/dashboard.json` — importable dashboard with panels:
       configured vs running process counts, container restart rate, SSL
       days-remaining timeline, last deploy timestamps
-- [ ] Write `README.md` — project landing page: one-paragraph description, a
+- [x] Write `.github/workflows/publish.yml` — GitHub Actions workflow that
+      builds and pushes the Docker image to
+      `ghcr.io/joeyates/dokku-radar` on every pushed tag matching `v*`;
+      uses `docker/build-push-action` with GHCR login via `GITHUB_TOKEN`
+- [x] Write `README.md` — project landing page: one-paragraph description, a
       prerequisites list (Dokku installation with `dokku-network` plugin, git,
-      Docker), link to `docs/setup.md`, and a metrics reference table
-- [ ] Write `prometheus/Dockerfile` — wraps the official `prom/prometheus`
-      image and copies `config/prometheus.yml` into the image at
-      `/etc/prometheus/prometheus.yml`; this is the canonical way to deliver
-      Prometheus config as a Dokku app (git push, no manual volume editing)
-- [ ] Write `docs/setup.md` — complete self-hoster guide (see Acceptance
+      Docker), link to `docs/setup.md`, a metrics reference table, and a
+      "Quick start" snippet showing
+      `dokku git:from-image dokku-radar ghcr.io/joeyates/dokku-radar:latest`
+- [x] ~~Write `prometheus/Dockerfile`~~ — unnecessary; Prometheus is deployed
+      directly from the official image via
+      `dokku git:from-image $DOKKU_APP quay.io/prometheus/prometheus:latest`
+      with config mounted from host storage
+- [x] Write `docs/setup.md` — complete self-hoster guide (see Acceptance
       Criteria)
-- [ ] Ask the user for feedback on the state of the implementation and carry out
+- [x] Ask the user for feedback on the state of the implementation and carry out
       any requested corrections.
-- [ ] Mark the plan as "done".
+- [x] Mark the plan as "done".
 
 ## Principal Files
 
@@ -97,6 +104,7 @@ automatically); `9110` is the fallback used in local/direct `docker run` usage.
 - `config/prometheus.yml`
 - `grafana/dashboard.json`
 - `prometheus/Dockerfile`
+- `.github/workflows/publish.yml`
 - `README.md`
 - `docs/setup.md`
 
@@ -124,9 +132,11 @@ automatically); `9110` is the fallback used in local/direct `docker run` usage.
       name changes its internal network hostname and therefore the scrape target
       in `prometheus.yml`
   2. Create the `monitoring` Dokku network
-  3. Deploy and configure `dokku-radar`: volume mounts for Docker socket and
-     Dokku data dir, network attachment, and explicitly `dokku proxy:disable
-     dokku-radar` so it is never exposed publicly
+  3. Deploy `dokku-radar` from GHCR via
+     `dokku git:from-image dokku-radar ghcr.io/joeyates/dokku-radar:latest`;
+     configure volume mounts for Docker socket and Dokku data dir, network
+     attachment, and explicitly `dokku proxy:disable dokku-radar` so it is
+     never exposed publicly
   4. Deploy `prometheus` by git-pushing the `prometheus/` subdirectory
      (containing `Dockerfile` + `prometheus.yml`); attach storage mount for
      persistence; attach to `monitoring` network
