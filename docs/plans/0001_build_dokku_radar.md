@@ -58,7 +58,7 @@ automatically); `9110` is the fallback used in local/direct `docker run` usage.
       simple enough to generate directly)
 - [x] Implement `DokkuRadar.Router` (Plug) with `GET /metrics` (calls Collector,
       returns `text/plain; charset=utf-8`) and `GET /health` (returns `200 ok`)
-- [ ] Wire up `DokkuRadar.Application` with a Bandit endpoint on the port read
+- [x] Wire up `DokkuRadar.Application` with a Bandit endpoint on the port read
       from `System.get_env("PORT", "9110")` (Dokku injects `PORT` at runtime;
       `9110` is the local/`docker run` fallback) and a `Req` base request
       configured for the Unix socket

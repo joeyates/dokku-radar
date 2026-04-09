@@ -3,7 +3,11 @@ defmodule DokkuRadar.Application do
 
   @impl true
   def start(_type, _args) do
-    children = []
+    port = Application.get_env(:dokku_radar, :port, 9110)
+
+    children = [
+      {Bandit, plug: DokkuRadar.Router, port: port}
+    ]
 
     opts = [strategy: :one_for_one, name: DokkuRadar.Supervisor]
     Supervisor.start_link(children, opts)
