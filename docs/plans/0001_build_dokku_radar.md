@@ -106,3 +106,9 @@ proxy (HTTPS via Let's Encrypt).
   5. Verify the stack is working (sample `curl` commands against each app)
   6. Optional next steps: expose `grafana` and `prometheus` via HTTPS, add
      `node_exporter`
+  7. Document the HTTP availability gap: Dokku Radar confirms containers are
+     running but cannot verify that apps are responding correctly to HTTP
+     requests. Recommend deploying
+     [`blackbox_exporter`](https://github.com/prometheus/blackbox_exporter) as
+     a fourth monitoring Dokku app to probe app domains; note that this is
+     outside the scope of this project.
