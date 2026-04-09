@@ -69,7 +69,7 @@ automatically); `9110` is the fallback used in local/direct `docker run` usage.
 - [x] Write `config/prometheus.yml` — scrape job `dokku_radar` targeting
       `dokku-radar.web.1:9110`; include a second optional job stub for
       `node_exporter`
-- [ ] Write `grafana/dashboard.json` — importable dashboard with panels:
+- [x] Write `grafana/dashboard.json` — importable dashboard with panels:
       configured vs running process counts, container restart rate, SSL
       days-remaining timeline, last deploy timestamps
 - [ ] Write `.github/workflows/publish.yml` — GitHub Actions workflow that
