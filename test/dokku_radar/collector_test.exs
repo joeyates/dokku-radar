@@ -240,6 +240,28 @@ defmodule DokkuRadar.CollectorTest do
       assert se.samples == []
     end
 
+    test "handles containers with nil Names" do
+      container = %{
+        "Id" => "xyz789abc012",
+        "Names" => nil,
+        "State" => "running",
+        "Created" => 1_700_000_000,
+        "Labels" => %{"com.dokku.app-name" => "my-app"}
+      }
+
+      setup_expectations(
+        containers: [container],
+        scales: %{"my-app" => {:ok, %{"web" => 1}}},
+        cert_expiries: %{"my-app" => {:error, :no_cert}}
+      )
+
+      assert {:ok, metrics} = Collector.collect(@opts)
+
+      cs = find_metric(metrics, "dokku_container_state")
+      assert [sample] = cs.samples
+      assert sample.labels["container_name"] == "xyz789abc012"
+    end
+
     test "returns error when list_containers fails" do
       expect(DokkuRadar.DockerClient.Mock, :list_containers, fn _opts ->
         {:error, %Req.TransportError{reason: :econnrefused}}

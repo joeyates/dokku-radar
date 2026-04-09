@@ -41,7 +41,10 @@ defmodule DokkuRadar.Collector do
   end
 
   defp container_name(container) do
-    container["Names"] |> List.first() |> String.trim_leading("/")
+    case container["Names"] do
+      [name | _] -> String.trim_leading(name, "/")
+      _ -> short_id(container)
+    end
   end
 
   defp short_id(container) do
