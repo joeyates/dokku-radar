@@ -66,7 +66,7 @@ automatically); `9110` is the fallback used in local/direct `docker run` usage.
       Mix release; `alpine` runtime stage; `EXPOSE 9110`; include OCI labels
       (`org.opencontainers.image.source`, `org.opencontainers.image.description`)
       so GHCR links the image to the GitHub repository
-- [ ] Write `config/prometheus.yml` — scrape job `dokku_radar` targeting
+- [x] Write `config/prometheus.yml` — scrape job `dokku_radar` targeting
       `dokku-radar.web.1:9110`; include a second optional job stub for
       `node_exporter`
 - [ ] Write `grafana/dashboard.json` — importable dashboard with panels:
