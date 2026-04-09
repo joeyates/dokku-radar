@@ -53,7 +53,7 @@ automatically); `9110` is the fallback used in local/direct `docker run` usage.
       `server.crt`, matching `dokku letsencrypt:list` logic)
 - [x] Implement `DokkuRadar.Collector` — coordinates Docker and filesystem
       reads; maps raw data onto the metric structs defined in the plan
-- [ ] Implement `DokkuRadar.PrometheusFormatter` — serialises metric structs to
+- [x] Implement `DokkuRadar.PrometheusFormatter` — serialises metric structs to
       Prometheus text exposition format (no external library; the format is
       simple enough to generate directly)
 - [ ] Implement `DokkuRadar.Router` (Plug) with `GET /metrics` (calls Collector,
