@@ -33,6 +33,12 @@ All three apps are attached to a private Dokku network called `monitoring`. The
 enabled). `prometheus` and `grafana` may optionally be exposed via the Dokku
 proxy (HTTPS via Let's Encrypt).
 
+All names (`monitoring`, `dokku-radar`, `prometheus`, `grafana`) are defaults
+that the self-hoster may change. Changing an app name requires updating the
+scrape target in `prometheus.yml` (pattern: `<app-name>.web.1:<port>`). The
+exporter port is read from the `PORT` environment variable (Dokku sets this
+automatically); `9110` is the fallback used in local/direct `docker run` usage.
+
 ## Tasks
 
 - [ ] Initialise the Mix project (`dokku_radar`), OTP application skeleton, and
@@ -53,8 +59,10 @@ proxy (HTTPS via Let's Encrypt).
       simple enough to generate directly)
 - [ ] Implement `DokkuRadar.Router` (Plug) with `GET /metrics` (calls Collector,
       returns `text/plain; charset=utf-8`) and `GET /health` (returns `200 ok`)
-- [ ] Wire up `DokkuRadar.Application` with a Bandit endpoint on port 9110 and a
-      `Req` base request configured for the Unix socket
+- [ ] Wire up `DokkuRadar.Application` with a Bandit endpoint on the port read
+      from `System.get_env("PORT", "9110")` (Dokku injects `PORT` at runtime;
+      `9110` is the local/`docker run` fallback) and a `Req` base request
+      configured for the Unix socket
 - [ ] Write `Dockerfile` — multi-stage: `elixir:1.18-alpine` builder producing a
       Mix release; `alpine` runtime stage; `EXPOSE 9110`
 - [ ] Write `config/prometheus.yml` — scrape job `dokku_radar` targeting
@@ -110,6 +118,11 @@ proxy (HTTPS via Let's Encrypt).
 - `docs/setup.md` covers the entire setup path in order:
   1. Prerequisites check — confirm Dokku version, network plugin, and that
      the user can `git push` to the host
+  1a. Customising names — table listing every name used (`monitoring`,
+      `dokku-radar`, `prometheus`, `grafana`) alongside every file and command
+      where each name must be substituted if changed; note that changing an app
+      name changes its internal network hostname and therefore the scrape target
+      in `prometheus.yml`
   2. Create the `monitoring` Dokku network
   3. Deploy and configure `dokku-radar`: volume mounts for Docker socket and
      Dokku data dir, network attachment, and explicitly `dokku proxy:disable
