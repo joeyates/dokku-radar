@@ -51,7 +51,7 @@ defmodule DokkuRadar.FilesystemReader do
   end
 
   defp extract_expiry(pem_data) do
-    [{_type, der, _}] = :public_key.pem_decode(pem_data)
+    [{_type, der, _} | _rest] = :public_key.pem_decode(pem_data)
     otp_cert = :public_key.pkix_decode_cert(der, :otp)
     {:Validity, _not_before, not_after} = otp_cert |> elem(1) |> elem(5)
     {:ok, asn1_time_to_datetime(not_after)}

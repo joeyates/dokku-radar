@@ -90,6 +90,28 @@ defmodule DokkuRadar.FilesystemReaderTest do
       assert days_until_expiry >= 89
     end
 
+    test "handles PEM files with certificate chain", %{tmp_dir: tmp_dir} do
+      tls_dir = Path.join([tmp_dir, "my-app", "tls"])
+      File.mkdir_p!(tls_dir)
+
+      cert_path = Path.join(tls_dir, "server.crt")
+      generate_self_signed_cert(cert_path, 60)
+
+      ca_path = Path.join(tls_dir, "ca.crt")
+      generate_self_signed_cert(ca_path, 365)
+
+      chain_path = cert_path
+      ca_pem = File.read!(ca_path)
+      File.write!(chain_path, File.read!(chain_path) <> ca_pem)
+
+      assert {:ok, %DateTime{} = expiry} =
+               FilesystemReader.cert_expiry("my-app", dokku_root: tmp_dir)
+
+      days_until_expiry = DateTime.diff(expiry, DateTime.utc_now(), :day)
+      assert days_until_expiry >= 59
+      assert days_until_expiry <= 61
+    end
+
     test "returns error when no cert exists", %{tmp_dir: tmp_dir} do
       assert {:error, :no_cert} =
                FilesystemReader.cert_expiry("no-cert-app", dokku_root: tmp_dir)
