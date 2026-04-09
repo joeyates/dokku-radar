@@ -44,7 +44,7 @@ automatically); `9110` is the fallback used in local/direct `docker run` usage.
 - [x] Initialise the Mix project (`dokku_radar`), OTP application skeleton, and
       `mix.exs` with dependencies: `plug`, `bandit`, `req` >= 0.5.17 (for
       Docker socket HTTP), `jason`
-- [ ] Implement `DokkuRadar.DockerClient` — a `Req`-based HTTP client over the
+- [x] Implement `DokkuRadar.DockerClient` — a `Req`-based HTTP client over the
       Unix socket at `/var/run/docker.sock`; expose `list_containers/0` and
       `container_stats/1`
 - [ ] Implement `DokkuRadar.FilesystemReader` — reads scale config from
