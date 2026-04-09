@@ -76,20 +76,20 @@ automatically); `9110` is the fallback used in local/direct `docker run` usage.
       builds and pushes the Docker image to
       `ghcr.io/joeyates/dokku-radar` on every pushed tag matching `v*`;
       uses `docker/build-push-action` with GHCR login via `GITHUB_TOKEN`
-- [ ] Write `README.md` — project landing page: one-paragraph description, a
+- [x] Write `README.md` — project landing page: one-paragraph description, a
       prerequisites list (Dokku installation with `dokku-network` plugin, git,
       Docker), link to `docs/setup.md`, a metrics reference table, and a
       "Quick start" snippet showing
       `dokku git:from-image dokku-radar ghcr.io/joeyates/dokku-radar:latest`
-- [ ] Write `prometheus/Dockerfile` — wraps the official `prom/prometheus`
-      image and copies `config/prometheus.yml` into the image at
-      `/etc/prometheus/prometheus.yml`; this is the canonical way to deliver
-      Prometheus config as a Dokku app (git push, no manual volume editing)
-- [ ] Write `docs/setup.md` — complete self-hoster guide (see Acceptance
+- [x] ~~Write `prometheus/Dockerfile`~~ — unnecessary; Prometheus is deployed
+      directly from the official image via
+      `dokku git:from-image $DOKKU_APP quay.io/prometheus/prometheus:latest`
+      with config mounted from host storage
+- [x] Write `docs/setup.md` — complete self-hoster guide (see Acceptance
       Criteria)
-- [ ] Ask the user for feedback on the state of the implementation and carry out
+- [x] Ask the user for feedback on the state of the implementation and carry out
       any requested corrections.
-- [ ] Mark the plan as "done".
+- [x] Mark the plan as "done".
 
 ## Principal Files
 
