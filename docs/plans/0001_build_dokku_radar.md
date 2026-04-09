@@ -62,7 +62,7 @@ automatically); `9110` is the fallback used in local/direct `docker run` usage.
       from `System.get_env("PORT", "9110")` (Dokku injects `PORT` at runtime;
       `9110` is the local/`docker run` fallback) and a `Req` base request
       configured for the Unix socket
-- [ ] Write `Dockerfile` — multi-stage: `elixir:1.18-alpine` builder producing a
+- [x] Write `Dockerfile` — multi-stage: `elixir:1.18-alpine` builder producing a
       Mix release; `alpine` runtime stage; `EXPOSE 9110`; include OCI labels
       (`org.opencontainers.image.source`, `org.opencontainers.image.description`)
       so GHCR links the image to the GitHub repository
