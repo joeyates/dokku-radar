@@ -17,8 +17,22 @@ dokku apps:create $DOKKU_APP
 dokku git:from-image $DOKKU_APP ghcr.io/joeyates/dokku-radar:latest
 ```
 
-See [docs/setup.md](docs/setup.md) for the complete setup guide, including
-Prometheus, Grafana, networking, and storage mounts.
+- [docs/setup.md](docs/setup.md) — deploy dokku-radar, Prometheus, and Grafana
+- [docs/system-checks.md](docs/system-checks.md) — verify the stack is working correctly
+- [docs/maintenance.md](docs/maintenance.md) — update configuration and images
+- [docs/troubleshooting.md](docs/troubleshooting.md) — common issues and fixes
+- [docs/next-steps.md](docs/next-steps.md) — optional extensions to the monitoring stack
+
+## Limitations
+
+Dokku Radar confirms containers are running but **cannot verify that apps are
+responding correctly to HTTP requests**. A container may be in `running` state
+but returning errors or timing out.
+
+For HTTP availability monitoring, consider deploying
+[blackbox_exporter](https://github.com/prometheus/blackbox_exporter) as an
+additional monitoring app to probe your app domains. This is outside the
+scope of this project.
 
 ## Prerequisites
 
