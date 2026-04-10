@@ -4,6 +4,19 @@ global:
 
 scrape_configs:
   - job_name: "dokku_radar"
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: "dokku_ssl_cert_expiry_timestamp"
+        action: drop
+    static_configs:
+      - targets: ["dokku-radar.web.1:9110"]
+
+  - job_name: "dokku_radar_ssl"
+    scrape_interval: 1d
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: "dokku_ssl_cert_expiry_timestamp"
+        action: keep
     static_configs:
       - targets: ["dokku-radar.web.1:9110"]
 
