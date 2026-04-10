@@ -16,13 +16,15 @@ the Grafana UI. To update it after making changes to `grafana/dashboard.json`:
 
 First, look up the real datasource UID:
 
-DS_UID=$(curl -sf -u admin:$GRAFANA_PASSWORD $GRAFANA_URL/api/datasources/name/Prometheus | jq -r '.uid')
+```bash
+DS_UID=$(curl -sf -H "Authorization: Bearer $GRAFANA_SERVICE_ACCOUNT_TOKEN" "https://$GRAFANA_DOMAIN/api/datasources/name/prometheus" | jq -r '.uid')
+```
 
 Then post to the import endpoint with overwrite:
 
-curl -sf -X POST -H "Content-Type: application/json" -u admin:$GRAFANA_PASSWORD $GRAFANA_URL/api/dashboards/import -d "{\"dashboard\": $(cat dashboard.json), "overwrite": true, "inputs": [{"name": "DS_PROMETHEUS", "type": "datasource", "pluginId": "prometheus", "value": "$DS_UID"}]}"
-
-Where GRAFANA_URL is your Grafana public URL (e.g. https://grafana.example.com) and GRAFANA_PASSWORD is your Grafana admin password.
+```bash
+curl -sf -X POST -H "Content-Type: application/json" -H "Authorization: Bearer $GRAFANA_SERVICE_ACCOUNT_TOKEN" https://$GRAFANA_DOMAIN/api/dashboards/import -d "{\"dashboard\": $(cat dashboard.json), "overwrite": true, "inputs": [{"name": "DS_PROMETHEUS", "type": "datasource", "pluginId": "prometheus", "value": "$DS_UID"}]}"
+```
 
 Alternatively, delete the existing dashboard and re-import the JSON file:
 
