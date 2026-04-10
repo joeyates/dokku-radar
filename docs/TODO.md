@@ -52,3 +52,27 @@ The reference `prometheus.yml` config currently lives in `config/`, alongside El
 
 - Move `config/prometheus.yml` to `prometheus/prometheus.yml`.
 - Update `docs/setup.md`: change the `scp` source path from `config/prometheus.yml` to `prometheus/prometheus.yml`.
+
+# Expose linked service presence and health metrics
+
+Status: [ ]
+
+## Description
+
+Add metrics that show which Dokku data services (Postgres, Redis, MySQL, etc.) are linked to each app, and whether each service is currently running/healthy. This gives operators visibility into service topology and lets them alert when a linked service goes down.
+
+## Technical Specifics
+
+- Add `openssh-client` to the Alpine runner image (`apk add openssh-client`) so the container can SSH to the host Dokku user.
+- Add a `DokkuRadar.DokkuCli` module that runs Dokku commands by SSHing to `dokku@<host>` (the standard Dokku remote API). The host, port, and path to the private key are taken from application config / environment variables.
+- Discover installed service plugins by running `dokku plugin:list` and filtering against a known set of service plugin names (e.g. `postgres`, `redis`, `mysql`, `mongo`, `mariadb`). An optional `config :dokku_radar, extra_service_types: [...]` allows operators to add unlisted plugins.
+- For each detected service plugin, call `dokku <type>:list` and parse the `STATUS` and `LINKS` columns.
+- Expose two new Prometheus metrics:
+  - `dokku_service_linked` — gauge, value `1` for each `{app, service_type, service_name}` triple where the service is linked to the app.
+  - `dokku_service_status` — gauge, value `1` if the service reports status `running`, `0` otherwise; labels `{service_type, service_name}`.
+- To avoid blocking Prometheus scrapes (default 10 s timeout), introduce a `DokkuRadar.ServiceCache` GenServer that:
+  - Refreshes the plugin list on startup and every 5 minutes (plugins rarely change).
+  - Refreshes per-service status on a shorter interval (configurable, default 30 s).
+  - Exposes a `get/0` call so the existing `Collector` can read cached results with no SSH latency.
+- Deployment setup: generate a dedicated SSH keypair, authorize the public key as a Dokku deploy key with read-only command scope, and mount the private key into the container as a secret. Document these steps in `docs/setup.md`.
+- Add a `DokkuRadar.DokkuCli.Behaviour` and a `MockDokkuCli` for tests, following the same pattern used by `DockerClient`.
