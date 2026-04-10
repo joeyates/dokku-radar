@@ -42,7 +42,7 @@ The "Last Deploy Timestamps" table panel shows NaN for all rows except one, beca
 
 # Move `prometheus.yml` to a dedicated `prometheus/` directory
 
-Status: [ ]
+Status: [x]
 
 ## Description
 
