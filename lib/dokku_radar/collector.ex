@@ -15,7 +15,10 @@ defmodule DokkuRadar.Collector do
 
     case docker_client.list_containers(docker_opts) do
       {:error, reason} ->
-        Logger.warning("Metrics collection failed: could not list containers", reason: inspect(reason))
+        Logger.warning("Metrics collection failed: could not list containers",
+          reason: inspect(reason)
+        )
+
         {:error, reason}
 
       {:ok, containers} ->

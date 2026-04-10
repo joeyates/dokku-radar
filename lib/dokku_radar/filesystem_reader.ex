@@ -18,7 +18,12 @@ defmodule DokkuRadar.FilesystemReader do
         {:ok, parse_scale(content)}
 
       {:error, reason} ->
-        Logger.warning("Failed to read app scale file", app: app_name, path: scale_path, reason: reason)
+        Logger.warning("Failed to read app scale file",
+          app: app_name,
+          path: scale_path,
+          reason: reason
+        )
+
         {:error, reason}
     end
   end

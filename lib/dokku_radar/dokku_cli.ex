@@ -36,6 +36,7 @@ defmodule DokkuRadar.DokkuCli do
           exit_code: exit_code,
           output: String.slice(output, 0, 200)
         )
+
         {:error, {exit_code, output}}
     end
   end
@@ -50,7 +51,13 @@ defmodule DokkuRadar.DokkuCli do
     case cmd_fn.("ssh", ssh_args(host, "#{service_type}:list"), stderr_to_stdout: true) do
       {output, 0} ->
         services = parse_services(output)
-        Logger.info("Fetched Dokku services", host: host, service_type: service_type, count: length(services))
+
+        Logger.info("Fetched Dokku services",
+          host: host,
+          service_type: service_type,
+          count: length(services)
+        )
+
         {:ok, services}
 
       {output, exit_code} ->
@@ -60,6 +67,7 @@ defmodule DokkuRadar.DokkuCli do
           exit_code: exit_code,
           output: String.slice(output, 0, 200)
         )
+
         {:error, {exit_code, output}}
     end
   end

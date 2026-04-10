@@ -15,7 +15,11 @@ defmodule DokkuRadar.DockerClient do
         {:ok, body}
 
       {:ok, %Req.Response{status: status, body: body}} ->
-        Logger.warning("Docker list_containers returned non-200", status: status, body: inspect(body))
+        Logger.warning("Docker list_containers returned non-200",
+          status: status,
+          body: inspect(body)
+        )
+
         {:error, {status, body}}
 
       {:error, reason} ->
@@ -45,6 +49,7 @@ defmodule DokkuRadar.DockerClient do
           status: status,
           body: inspect(body)
         )
+
         {:error, {status, body}}
 
       {:error, reason} ->
@@ -52,6 +57,7 @@ defmodule DokkuRadar.DockerClient do
           container_id: container_id,
           reason: inspect(reason)
         )
+
         {:error, reason}
     end
   end
@@ -73,6 +79,7 @@ defmodule DokkuRadar.DockerClient do
           status: status,
           body: inspect(body)
         )
+
         {:error, {status, body}}
 
       {:error, reason} ->
@@ -80,6 +87,7 @@ defmodule DokkuRadar.DockerClient do
           container_id: container_id,
           reason: inspect(reason)
         )
+
         {:error, reason}
     end
   end
