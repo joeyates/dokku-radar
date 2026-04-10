@@ -149,7 +149,7 @@
       },
       "targets": [
         {
-          "expr": "(dokku_ssl_cert_expiry_timestamp{app=~\"$app\"} - time()) / 86400",
+          "expr": "(last_over_time(dokku_ssl_cert_expiry_timestamp{app=~\"$app\"}[25h]) - time()) / 86400",
           "legendFormat": "{{app}}",
           "refId": "A"
         }
