@@ -16,7 +16,7 @@ defmodule DokkuRadar.ServiceCache do
 
   @impl true
   def get(server \\ __MODULE__) do
-    GenServer.call(server, :get)
+    GenServer.call(server, :get, :infinity)
   end
 
   def refresh(server \\ __MODULE__) do
