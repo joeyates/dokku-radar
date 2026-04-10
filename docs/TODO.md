@@ -107,7 +107,7 @@ GenServer lifecycle events (cache refresh start/finish, intervals).
 
 # Move `Dockerfile` to a `container/` subdirectory
 
-Status: [ ]
+Status: [x]
 
 ## Description
 
