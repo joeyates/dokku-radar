@@ -1,11 +1,15 @@
 defmodule DokkuRadar.Router do
   use Plug.Router
 
+  require Logger
+
   plug(:match)
   plug(:dispatch)
 
   get "/metrics" do
+    Logger.debug("#{__MODULE__}, get /metrics")
     collector = conn.private[:collector] || DokkuRadar.Collector
+    Logger.debug("Using collector #{inspect(collector)}")
 
     case collector.collect([]) do
       {:ok, metrics} ->
@@ -15,7 +19,9 @@ defmodule DokkuRadar.Router do
         |> put_resp_content_type("text/plain")
         |> send_resp(200, body)
 
-      {:error, _reason} ->
+      {:error, reason} ->
+        Logger.error("collector.collect failed: #{inspect(reason)}")
+
         conn
         |> put_resp_content_type("text/plain")
         |> send_resp(500, "collection failed")
