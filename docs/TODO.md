@@ -23,3 +23,19 @@ data sources — no CLI invocations or SSH.
   dashboard JSON, and setup documentation
 - Open questions: scale config file path, Let's Encrypt cert paths, exporter
   port selection, optional `/metrics` auth
+
+# Fix `dokku_app_last_deploy_timestamp` Grafana panel
+
+Status: [ ]
+
+## Description
+
+The "Last Deploy Timestamps" table panel shows NaN for all rows except one, because the Grafana panel is misconfigured: a `reduce` transformation collapses per-app rows into summary columns, and the `dateTimeFromNow` unit is applied to all fields (including the string `app` column).
+
+## Technical Specifics
+
+- In `grafana/dashboard.json`, panel "Last Deploy Timestamps":
+  - Replace the `reduce` transformation with `filterFieldsByName` (keeping `app` and `Value`) followed by `organize` (renaming `Value` → `Last Deploy`)
+  - Move `unit: dateTimeFromNow` from `fieldConfig.defaults` to a field-level override on the `Last Deploy` column only
+  - Update `options.sortBy` to reference `"Last Deploy"` instead of `"Value"`
+- The backend metric and Prometheus query are correct — no Elixir changes needed
