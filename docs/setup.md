@@ -94,7 +94,7 @@ ssh root@$DOKKU_HOST "mkdir -p /var/lib/dokku/data/storage/$DOKKU_APP/{config,da
 Copy the Prometheus configuration to the host:
 
 ```bash
-scp config/prometheus.yml root@$DOKKU_HOST:/var/lib/dokku/data/storage/$DOKKU_APP/config/prometheus.yml
+scp prometheus/prometheus.yml root@$DOKKU_HOST:/var/lib/dokku/data/storage/$DOKKU_APP/config/prometheus.yml
 ```
 
 Mount the config file and data directory:
@@ -123,7 +123,7 @@ dokku git:from-image $DOKKU_APP quay.io/prometheus/prometheus:latest
 To update `prometheus.yml` after deployment:
 
 ```bash
-scp config/prometheus.yml root@$DOKKU_HOST:/var/lib/dokku/data/storage/$DOKKU_APP/config/prometheus.yml
+scp prometheus/prometheus.yml root@$DOKKU_HOST:/var/lib/dokku/data/storage/$DOKKU_APP/config/prometheus.yml
 dokku ps:restart $DOKKU_APP
 ```
 
