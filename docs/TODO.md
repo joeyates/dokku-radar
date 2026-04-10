@@ -26,7 +26,7 @@ data sources — no CLI invocations or SSH.
 
 # Fix `dokku_app_last_deploy_timestamp` Grafana panel
 
-Status: [ ]
+Status: [x]
 
 ## Description
 
