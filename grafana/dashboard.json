@@ -119,14 +119,18 @@
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": {
-        "defaults": {
-          "unit": "dateTimeFromNow"
-        },
+        "defaults": {},
         "overrides": [
           {
             "matcher": { "id": "byName", "options": "app" },
             "properties": [
               { "id": "custom.width", "value": 200 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Last Deploy" },
+            "properties": [
+              { "id": "unit", "value": "dateTimeFromNow" }
             ]
           }
         ]
@@ -134,14 +138,24 @@
       "options": {
         "showHeader": true,
         "sortBy": [
-          { "desc": true, "displayName": "Value" }
+          { "desc": true, "displayName": "Last Deploy" }
         ]
       },
       "transformations": [
         {
-          "id": "reduce",
+          "id": "filterFieldsByName",
           "options": {
-            "reducers": ["lastNotNull"]
+            "include": {
+              "names": ["app", "Value"]
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "Value": "Last Deploy"
+            }
           }
         }
       ],

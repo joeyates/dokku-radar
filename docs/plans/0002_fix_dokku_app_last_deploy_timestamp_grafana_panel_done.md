@@ -2,6 +2,7 @@
 title: Fix `dokku_app_last_deploy_timestamp` Grafana panel
 description: Fix the "Last Deploy Timestamps" table panel which shows NaN for almost all rows due to a misconfigured Grafana transformation and unit setting.
 branch: bugfix/fix-last-deploy-timestamp-panel
+status: done
 ---
 
 ## Overview
@@ -10,11 +11,11 @@ The "Last Deploy Timestamps" table panel in the Grafana dashboard currently show
 
 ## Tasks
 
-- [ ] Replace the `reduce` transformation with `filterFieldsByName` (keeping `app` and `Value`) followed by `organize` (renaming `Value` → `Last Deploy`)
-- [ ] Move `unit: dateTimeFromNow` from `fieldConfig.defaults` to a field-level override on the `Last Deploy` column
-- [ ] Update `options.sortBy` to reference `"Last Deploy"` instead of `"Value"`
-- [ ] Ask the user for feedback on the state of the implementation and carry out any requested corrections.
-- [ ] Mark the plan as "done".
+- [x] Replace the `reduce` transformation with `filterFieldsByName` (keeping `app` and `Value`) followed by `organize` (renaming `Value` → `Last Deploy`)
+- [x] Move `unit: dateTimeFromNow` from `fieldConfig.defaults` to a field-level override on the `Last Deploy` column
+- [x] Update `options.sortBy` to reference `"Last Deploy"` instead of `"Value"`
+- [x] Ask the user for feedback on the state of the implementation and carry out any requested corrections.
+- [x] Mark the plan as "done".
 
 ## Principal Files
 
