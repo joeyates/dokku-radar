@@ -76,3 +76,31 @@ Add metrics that show which Dokku data services (Postgres, Redis, MySQL, etc.) a
   - Exposes a `get/0` call so the existing `Collector` can read cached results with no SSH latency.
 - Deployment setup: generate a dedicated SSH keypair, authorize the public key as a Dokku deploy key with read-only command scope, and mount the private key into the container as a secret. Document these steps in `docs/setup.md`.
 - Add a `DokkuRadar.DokkuCli.Behaviour` and a `MockDokkuCli` for tests, following the same pattern used by `DockerClient`.
+
+# Add Elixir logging to the application
+
+Status: [ ]
+
+## Description
+
+Add `require Logger` and structured `Logger.info` / `Logger.debug` calls
+throughout the app so operators can understand what the exporter is doing at
+runtime. Priority areas are the SSH calls in `DokkuRadar.DokkuCli` (before
+each `ssh` invocation, on success, and on error) and the `ServiceCache`
+GenServer lifecycle events (cache refresh start/finish, intervals).
+
+## Technical Specifics
+
+- In `DokkuRadar.DokkuCli.list_service_types/1`:
+  - `Logger.debug` before the SSH call (include `host`).
+  - `Logger.info` on success (number of service types found).
+  - `Logger.warning` on error (include `exit_code` and truncated output).
+- In `DokkuRadar.DokkuCli.list_services/2`:
+  - `Logger.debug` before the SSH call (include `host` and `service_type`).
+  - `Logger.info` on success (number of services found).
+  - `Logger.warning` on error (include `exit_code` and truncated output).
+- In `DokkuRadar.ServiceCache` (GenServer):
+  - `Logger.info` when a refresh cycle starts and completes.
+  - `Logger.debug` for per-service-type refresh steps.
+- Use keyword-list structured logging where available (`Logger.info("msg", key: val)`) rather than string interpolation.
+- No changes to config files are needed — Elixir's Logger defaults are sufficient; operators can tune the log level via the `LOG_LEVEL` / `logger` application env.
