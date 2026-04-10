@@ -1,6 +1,8 @@
 defmodule DokkuRadar.DokkuCli do
   @behaviour DokkuRadar.DokkuCli.Behaviour
 
+  require Logger
+
   @known_service_types ~w(
     elasticsearch
     mariadb
@@ -20,11 +22,20 @@ defmodule DokkuRadar.DokkuCli do
     cmd_fn = Keyword.get(opts, :cmd_fn, &System.cmd/3)
     host = Keyword.get(opts, :host, Application.get_env(:dokku_radar, :dokku_host, @default_host))
 
+    Logger.debug("Fetching Dokku plugin list via SSH", host: host)
+
     case cmd_fn.("ssh", ssh_args(host, "plugin:list"), stderr_to_stdout: true) do
       {output, 0} ->
-        {:ok, parse_service_types(output)}
+        types = parse_service_types(output)
+        Logger.info("Fetched Dokku service types", host: host, count: length(types))
+        {:ok, types}
 
       {output, exit_code} ->
+        Logger.warning("SSH call to list plugins failed",
+          host: host,
+          exit_code: exit_code,
+          output: String.slice(output, 0, 200)
+        )
         {:error, {exit_code, output}}
     end
   end
@@ -34,11 +45,21 @@ defmodule DokkuRadar.DokkuCli do
     cmd_fn = Keyword.get(opts, :cmd_fn, &System.cmd/3)
     host = Keyword.get(opts, :host, Application.get_env(:dokku_radar, :dokku_host, @default_host))
 
+    Logger.debug("Fetching Dokku service list via SSH", host: host, service_type: service_type)
+
     case cmd_fn.("ssh", ssh_args(host, "#{service_type}:list"), stderr_to_stdout: true) do
       {output, 0} ->
-        {:ok, parse_services(output)}
+        services = parse_services(output)
+        Logger.info("Fetched Dokku services", host: host, service_type: service_type, count: length(services))
+        {:ok, services}
 
       {output, exit_code} ->
+        Logger.warning("SSH call to list services failed",
+          host: host,
+          service_type: service_type,
+          exit_code: exit_code,
+          output: String.slice(output, 0, 200)
+        )
         {:error, {exit_code, output}}
     end
   end

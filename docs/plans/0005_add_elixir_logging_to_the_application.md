@@ -10,7 +10,7 @@ Instrument all modules that perform I/O so operators can observe SSH call attemp
 
 ## Tasks
 
-- [ ] Add `require Logger` to `DokkuRadar.DokkuCli`; add `Logger.debug` before each SSH call (include `host` / `service_type`), `Logger.info` on success (include result count), and `Logger.warning` on error (include `exit_code` and first ~200 chars of output).
+- [x] Add `require Logger` to `DokkuRadar.DokkuCli`; add `Logger.debug` before each SSH call (include `host` / `service_type`), `Logger.info` on success (include result count), and `Logger.warning` on error (include `exit_code` and first ~200 chars of output).
 - [ ] Add `require Logger` to `DokkuRadar.DockerClient`; add `Logger.debug` before each Docker API call (include endpoint / container ID) and `Logger.warning` on non-200 responses or errors.
 - [ ] Add `require Logger` to `DokkuRadar.FilesystemReader`; add `Logger.debug` before each `File.read/1` (include path) and `Logger.warning` on `{:error, reason}` returns.
 - [ ] Add `require Logger` to `DokkuRadar.Collector`; add `Logger.info` at the start of a collect cycle (include container count after listing), and `Logger.warning` if `list_containers` fails.
