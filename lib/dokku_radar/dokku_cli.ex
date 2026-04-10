@@ -61,7 +61,7 @@ defmodule DokkuRadar.DokkuCli do
     output
     |> String.split("\n", trim: true)
     |> Enum.reject(&String.starts_with?(&1, "====="))
-    |> Enum.reject(&String.starts_with?(String.trim(&1), "NAME"))
+    |> Enum.reject(&(&1 |> String.trim() |> String.starts_with?("NAME")))
     |> Enum.map(&parse_service_line/1)
     |> Enum.reject(&is_nil/1)
   end
