@@ -79,7 +79,7 @@ Add metrics that show which Dokku data services (Postgres, Redis, MySQL, etc.) a
 
 # Add Elixir logging to the application
 
-Status: [ ]
+Status: [x]
 
 ## Description
 
