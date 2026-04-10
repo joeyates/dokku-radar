@@ -17,12 +17,12 @@ Introduce a `DokkuRadar.DokkuCli` module that SSHes to `dokku@<host>` to query i
 - [x] Register `ServiceCache` in the application supervision tree.
 - [x] Add `dokku_service_linked` and `dokku_service_status` metric builders to `DokkuRadar.Collector`.
 - [x] Add `MockDokkuCli` for tests, following the `DockerClient` mock pattern.
-- [ ] Document SSH key setup steps in `docs/setup.md`.
-- [ ] Add two Grafana panels to `grafana/dashboard.json`:
+- [x] Document SSH key setup steps in `docs/setup.md`.
+- [x] Add two Grafana panels to `grafana/dashboard.json`:
   - A **Table** panel "Linked Services" showing one row per `(app, service_type, service_name)` with a `Status` column that value-maps `1` → `Running` (green) / `0` → `Stopped` (red), using a PromQL join: `dokku_service_linked * on(service_type, service_name) group_left() dokku_service_status`.
   - A **Stat** panel "Services Down" showing count of linked services that are currently stopped: `count(dokku_service_linked * on(service_type, service_name) group_left() dokku_service_status == 0)`.
-- [ ] Ask the user for feedback on the state of the implementation and carry out any requested corrections.
-- [ ] Mark the plan as "done".
+- [x] Ask the user for feedback on the state of the implementation and carry out any requested corrections.
+- [x] Mark the plan as "done".
 
 ## Principal Files
 
