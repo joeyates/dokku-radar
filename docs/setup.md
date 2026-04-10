@@ -131,8 +131,25 @@ dokku ps:restart $DOKKU_APP
 
 ```bash
 export DOKKU_APP=grafana
+export APP_DOMAIN=grafana.example.com
+export APP_PORT=3000
+export DOMAIN_EMAIL=you@example.com
 
 dokku apps:create $DOKKU_APP
+dokku domains:set $DOKKU_APP $APP_DOMAIN
+```
+
+### Expose via HTTPS
+
+```bash
+dokku ports:set $DOKKU_APP http:80:$APP_PORT
+dokku letsencrypt:set $DOKKU_APP email $DOMAIN_EMAIL
+dokku letsencrypt:enable $DOKKU_APP
+```
+
+### Set Up Storage
+
+```bash
 dokku storage:ensure-directory $DOKKU_APP
 dokku storage:mount $DOKKU_APP /var/lib/dokku/data/storage/$DOKKU_APP:/var/lib/grafana
 dokku network:set $DOKKU_APP attach-post-deploy monitoring
@@ -250,40 +267,6 @@ dokku ps:restart prometheus
 The Prometheus container runs as UID 65534 (`nobody`).
 
 ## 7. Optional Next Steps
-
-### Expose Grafana and Prometheus via HTTPS
-
-For each app you want to expose publicly, set the domain, configure the port
-mapping, and enable Let's Encrypt. Set `DOKKU_APP`, `APP_DOMAIN`, `APP_PORT`,
-and `DOMAIN_EMAIL` for each app.
-
-**Grafana** (default port 3000):
-
-```bash
-export DOKKU_APP=grafana
-export APP_DOMAIN=grafana.example.com
-export APP_PORT=3000
-export DOMAIN_EMAIL=you@example.com
-
-dokku domains:set $DOKKU_APP $APP_DOMAIN
-dokku ports:set $DOKKU_APP http:80:$APP_PORT
-dokku letsencrypt:set $DOKKU_APP email $DOMAIN_EMAIL
-dokku letsencrypt:enable $DOKKU_APP
-```
-
-**Prometheus** (default port 9090):
-
-```bash
-export DOKKU_APP=prometheus
-export APP_DOMAIN=prometheus.example.com
-export APP_PORT=9090
-export DOMAIN_EMAIL=you@example.com
-
-dokku domains:set $DOKKU_APP $APP_DOMAIN
-dokku ports:set $DOKKU_APP http:80:$APP_PORT
-dokku letsencrypt:set $DOKKU_APP email $DOMAIN_EMAIL
-dokku letsencrypt:enable $DOKKU_APP
-```
 
 ### Add node_exporter for Host-level Metrics
 
