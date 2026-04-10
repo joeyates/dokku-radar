@@ -55,7 +55,7 @@ The reference `prometheus.yml` config currently lives in `config/`, alongside El
 
 # Expose linked service presence and health metrics
 
-Status: [ ]
+Status: [x]
 
 ## Description
 
