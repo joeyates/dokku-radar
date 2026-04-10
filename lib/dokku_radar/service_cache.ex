@@ -1,4 +1,6 @@
 defmodule DokkuRadar.ServiceCache do
+  @behaviour DokkuRadar.ServiceCache.Behaviour
+
   use GenServer
 
   @default_plugin_refresh_interval :timer.minutes(5)
@@ -12,6 +14,7 @@ defmodule DokkuRadar.ServiceCache do
     GenServer.start_link(__MODULE__, opts, gen_server_opts)
   end
 
+  @impl true
   def get(server \\ __MODULE__) do
     GenServer.call(server, :get)
   end
@@ -25,8 +28,12 @@ defmodule DokkuRadar.ServiceCache do
   @impl true
   def init(opts) do
     dokku_cli = Keyword.get(opts, :dokku_cli, DokkuRadar.DokkuCli)
-    plugin_refresh_interval = Keyword.get(opts, :plugin_refresh_interval, @default_plugin_refresh_interval)
-    service_refresh_interval = Keyword.get(opts, :service_refresh_interval, @default_service_refresh_interval)
+
+    plugin_refresh_interval =
+      Keyword.get(opts, :plugin_refresh_interval, @default_plugin_refresh_interval)
+
+    service_refresh_interval =
+      Keyword.get(opts, :service_refresh_interval, @default_service_refresh_interval)
 
     state = %{
       dokku_cli: dokku_cli,

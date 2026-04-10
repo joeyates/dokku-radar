@@ -9,16 +9,17 @@ defmodule DokkuRadar.CollectorTest do
 
   @opts [
     docker_client: DokkuRadar.DockerClient.Mock,
-    filesystem_reader: DokkuRadar.FilesystemReader.Mock
+    filesystem_reader: DokkuRadar.FilesystemReader.Mock,
+    service_cache: DokkuRadar.ServiceCache.Mock
   ]
 
   describe "collect/1" do
-    test "returns all eight metrics for a single Dokku container" do
+    test "returns all ten metrics for a single Dokku container" do
       setup_single_app_expectations()
 
       assert {:ok, metrics} = Collector.collect(@opts)
 
-      assert length(metrics) == 8
+      assert length(metrics) == 10
       assert find_metric(metrics, "dokku_app_processes_configured")
       assert find_metric(metrics, "dokku_app_processes_running")
       assert find_metric(metrics, "dokku_container_state")
@@ -27,6 +28,86 @@ defmodule DokkuRadar.CollectorTest do
       assert find_metric(metrics, "dokku_ssl_cert_expiry_timestamp")
       assert find_metric(metrics, "dokku_app_cpu_usage_seconds_total")
       assert find_metric(metrics, "dokku_app_memory_usage_bytes")
+      assert find_metric(metrics, "dokku_service_linked")
+      assert find_metric(metrics, "dokku_service_status")
+    end
+
+    test "builds dokku_service_linked metric from cached services" do
+      stub(DokkuRadar.ServiceCache.Mock, :get, fn ->
+        {:ok,
+         [
+           %{service_type: "postgres", name: "my-db", status: "running", links: ["my-app"]},
+           %{
+             service_type: "postgres",
+             name: "shared-db",
+             status: "running",
+             links: ["app1", "app2"]
+           }
+         ]}
+      end)
+
+      setup_single_app_expectations(service_cache: false)
+
+      assert {:ok, metrics} = Collector.collect(@opts)
+
+      sl = find_metric(metrics, "dokku_service_linked")
+      assert sl.type == :gauge
+      assert length(sl.samples) == 3
+
+      sample = Enum.find(sl.samples, &(&1.labels["app"] == "my-app"))
+      assert sample.labels["service_type"] == "postgres"
+      assert sample.labels["service_name"] == "my-db"
+      assert sample.value == 1
+    end
+
+    test "builds dokku_service_status metric from cached services" do
+      stub(DokkuRadar.ServiceCache.Mock, :get, fn ->
+        {:ok,
+         [
+           %{service_type: "postgres", name: "my-db", status: "running", links: ["my-app"]},
+           %{service_type: "redis", name: "cache", status: "stopped", links: ["my-app"]}
+         ]}
+      end)
+
+      setup_single_app_expectations(service_cache: false)
+
+      assert {:ok, metrics} = Collector.collect(@opts)
+
+      ss = find_metric(metrics, "dokku_service_status")
+      assert ss.type == :gauge
+      assert length(ss.samples) == 2
+
+      running = Enum.find(ss.samples, &(&1.labels["service_name"] == "my-db"))
+      assert running.value == 1
+
+      stopped = Enum.find(ss.samples, &(&1.labels["service_name"] == "cache"))
+      assert stopped.value == 0
+    end
+
+    test "returns empty service metrics when cache has no services" do
+      setup_single_app_expectations()
+
+      assert {:ok, metrics} = Collector.collect(@opts)
+
+      sl = find_metric(metrics, "dokku_service_linked")
+      assert sl.samples == []
+
+      ss = find_metric(metrics, "dokku_service_status")
+      assert ss.samples == []
+    end
+
+    test "returns empty service metrics when cache returns error" do
+      stub(DokkuRadar.ServiceCache.Mock, :get, fn -> {:error, {255, "Connection refused"}} end)
+
+      setup_single_app_expectations(service_cache: false)
+
+      assert {:ok, metrics} = Collector.collect(@opts)
+
+      sl = find_metric(metrics, "dokku_service_linked")
+      assert sl.samples == []
+
+      ss = find_metric(metrics, "dokku_service_status")
+      assert ss.samples == []
     end
 
     test "populates processes_configured from scale file" do
@@ -162,6 +243,8 @@ defmodule DokkuRadar.CollectorTest do
     end
 
     test "handles stats failure gracefully" do
+      stub(DokkuRadar.ServiceCache.Mock, :get, fn -> {:ok, []} end)
+
       expect(DokkuRadar.DockerClient.Mock, :list_containers, fn _opts ->
         {:ok, [dokku_container("aaa111", "my-app", "web", 1, "running", 1_700_000_000)]}
       end)
@@ -196,6 +279,8 @@ defmodule DokkuRadar.CollectorTest do
     end
 
     test "handles inspect failure gracefully" do
+      stub(DokkuRadar.ServiceCache.Mock, :get, fn -> {:ok, []} end)
+
       expect(DokkuRadar.DockerClient.Mock, :list_containers, fn _opts ->
         {:ok, [dokku_container("aaa111", "my-app", "web", 1, "running", 1_700_000_000)]}
       end)
@@ -305,6 +390,7 @@ defmodule DokkuRadar.CollectorTest do
     restart_count = Keyword.get(overrides, :restart_count, 0)
     cpu_ns = Keyword.get(overrides, :cpu_ns, 5_000_000_000)
     memory_bytes = Keyword.get(overrides, :memory_bytes, 52_428_800)
+    setup_service_cache = Keyword.get(overrides, :service_cache, true)
 
     cert_expiry =
       Keyword.get(overrides, :cert_expiry, {:ok, ~U[2026-07-08 12:00:00Z]})
@@ -332,12 +418,18 @@ defmodule DokkuRadar.CollectorTest do
     expect(DokkuRadar.FilesystemReader.Mock, :cert_expiry, fn "my-app", _opts ->
       cert_expiry
     end)
+
+    if setup_service_cache do
+      stub(DokkuRadar.ServiceCache.Mock, :get, fn -> {:ok, []} end)
+    end
   end
 
   defp setup_expectations(opts) do
     containers = Keyword.fetch!(opts, :containers)
     scales = Keyword.get(opts, :scales, %{})
     cert_expiries = Keyword.get(opts, :cert_expiries, %{})
+
+    stub(DokkuRadar.ServiceCache.Mock, :get, fn -> {:ok, []} end)
 
     expect(DokkuRadar.DockerClient.Mock, :list_containers, fn _opts ->
       {:ok, containers}
