@@ -139,9 +139,19 @@
       },
       "transformations": [
         {
-          "id": "reduce",
+          "id": "filterFieldsByName",
           "options": {
-            "reducers": ["lastNotNull"]
+            "include": {
+              "names": ["app", "Value"]
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "Value": "Last Deploy"
+            }
           }
         }
       ],
