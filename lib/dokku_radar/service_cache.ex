@@ -3,6 +3,8 @@ defmodule DokkuRadar.ServiceCache do
 
   use GenServer
 
+  require Logger
+
   @default_plugin_refresh_interval :timer.minutes(5)
   @default_service_refresh_interval :timer.seconds(30)
 
@@ -84,23 +86,31 @@ defmodule DokkuRadar.ServiceCache do
   end
 
   defp load(state) do
+    Logger.info("Loading Dokku service cache")
+
     case state.dokku_cli.list_service_types([]) do
       {:ok, types} ->
         services = fetch_all_services(types, state.dokku_cli)
+        Logger.info("Dokku service cache loaded", service_count: length(services))
         %{state | cache: {:ok, services}}
 
       {:error, reason} ->
+        Logger.warning("Failed to load Dokku service cache", reason: inspect(reason))
         %{state | cache: {:error, reason}}
     end
   end
 
   defp refresh_services(%{cache: {:ok, _}} = state) do
+    Logger.info("Refreshing Dokku service statuses")
+
     case state.dokku_cli.list_service_types([]) do
       {:ok, types} ->
         services = fetch_all_services(types, state.dokku_cli)
+        Logger.info("Dokku service statuses refreshed", service_count: length(services))
         %{state | cache: {:ok, services}}
 
       {:error, reason} ->
+        Logger.warning("Failed to refresh Dokku service statuses", reason: inspect(reason))
         %{state | cache: {:error, reason}}
     end
   end
@@ -109,6 +119,8 @@ defmodule DokkuRadar.ServiceCache do
 
   defp fetch_all_services(service_types, dokku_cli) do
     Enum.flat_map(service_types, fn type ->
+      Logger.debug("Fetching services for type", service_type: type)
+
       case dokku_cli.list_services(type, []) do
         {:ok, services} ->
           Enum.map(services, &Map.put(&1, :service_type, type))
