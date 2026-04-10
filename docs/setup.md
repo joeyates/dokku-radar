@@ -48,33 +48,7 @@ For example, renaming `dokku-radar` to `my-exporter` means the Prometheus
 scrape target becomes `my-exporter.web.1:9110` — update `prometheus.yml`
 accordingly.
 
-## 1. Create the Monitoring Network
-
-```bash
-dokku network:create monitoring
-```
-
-All three apps will be attached to this network so they can reach each other
-by hostname without being exposed publicly.
-
-## 2. Deploy dokku-radar
-
-```bash
-export DOKKU_APP=dokku-radar
-
-dokku apps:create $DOKKU_APP
-dokku storage:mount $DOKKU_APP /var/run/docker.sock:/var/run/docker.sock
-dokku storage:mount $DOKKU_APP /var/lib/dokku/data:/var/lib/dokku/data:ro
-dokku storage:mount $DOKKU_APP /home/dokku:/home/dokku:ro
-dokku network:set $DOKKU_APP attach-post-deploy monitoring
-dokku proxy:disable $DOKKU_APP
-dokku git:from-image $DOKKU_APP ghcr.io/joeyates/dokku-radar:latest
-```
-
-The exporter is never exposed publicly — `proxy:disable` ensures no domains
-are assigned and no external port mapping is created.
-
-### SSH Key Setup for Service Metrics
+## 1. Set up ssh access from container to host
 
 dokku-radar queries installed Dokku service plugins (postgres, redis, etc.) via
 SSH to expose `dokku_service_linked` and `dokku_service_status` metrics. This
@@ -92,28 +66,59 @@ ssh-keygen -t ed25519 -f ~/.ssh/dokku-radar -N "" -C "dokku-radar"
 dokku-root ssh-keys:add dokku-radar < ~/.ssh/dokku-radar.pub
 ```
 
-Verify the key works:
+## 2. Create the Monitoring Network
 
 ```bash
-ssh -i ~/.ssh/dokku-radar dokku@$DOKKU_HOST plugin:list
+dokku network:create monitoring
 ```
 
-**3. Store the private key** in Dokku's storage directory:
+All three apps will be attached to this network so they can reach each other
+by hostname without being exposed publicly.
+
+## 2. Prepare the dokku-radar app
 
 ```bash
-ssh root@$DOKKU_HOST "mkdir -p /var/lib/dokku/data/storage/dokku-radar/.ssh"
-scp ~/.ssh/dokku-radar root@$DOKKU_HOST:/var/lib/dokku/data/storage/dokku-radar/.ssh/id_ed25519
-ssh root@$DOKKU_HOST "chmod 600 /var/lib/dokku/data/storage/dokku-radar/.ssh/id_ed25519"
+export DOKKU_APP=dokku-radar
+
+dokku apps:create $DOKKU_APP
+dokku proxy:disable $DOKKU_APP
+# Give access to Doker state
+dokku storage:mount $DOKKU_APP /var/run/docker.sock:/var/run/docker.sock
+# Give access to Dokku data
+dokku storage:mount $DOKKU_APP /var/lib/dokku/data:/var/lib/dokku/data:ro
+# Give access to the single Dokku apps
+dokku storage:mount $DOKKU_APP /home/dokku:/home/dokku:ro
+dokku network:set $DOKKU_APP attach-post-deploy monitoring
 ```
 
-**4. Mount the SSH directory** into the container:
+The exporter is never exposed publicly — `proxy:disable` ensures no domains
+are assigned and no external port mapping is created.
+
+## 3. Store the private key** in Dokku's storage directory
 
 ```bash
-dokku storage:mount dokku-radar /var/lib/dokku/data/storage/dokku-radar/.ssh:/root/.ssh:ro
+ssh root@$DOKKU_HOST "mkdir -p /var/lib/dokku/data/storage/$DOKKU_APP/.ssh"
+scp ~/.ssh/dokku-radar root@$DOKKU_HOST:/var/lib/dokku/data/storage/$DOKKU_APP/.ssh/id_ed25519
+ssh root@$DOKKU_HOST "chmod 600 /var/lib/dokku/data/storage/$DOKKU_APP/.ssh/id_ed25519"
+dokku storage:mount $DOKKU_APP /var/lib/dokku/data/storage/$DOKKU_APP/.ssh:/root/.ssh:ro
 ```
 
-**5. Set the Dokku host** environment variable so dokku-radar can find the
-host to SSH into:
+## 4. Deploy
+
+```bash
+dokku git:from-image $DOKKU_APP ghcr.io/joeyates/dokku-radar:latest
+```
+
+If you want to deploy from source, instead of that last step
+
+```bash
+git remote add dokku dokku@$DOKKU_HOST:$DOKKU_APP
+git push dokku
+```
+
+## 5. Set the DOKKU_HOST environment variable
+
+This is required so dokku-radar can find the host to SSH into
 
 Check the IP:
 
@@ -125,13 +130,7 @@ dokku enter dokku-radar web ip route list | grep default
 dokku config:set dokku-radar DOKKU_HOST={{IP}}
 ```
 
-Restart the app to apply:
-
-```bash
-dokku ps:restart dokku-radar
-```
-
-## 3. Deploy Prometheus
+## 6. Deploy Prometheus
 
 ```bash
 export DOKKU_APP=prometheus
@@ -184,7 +183,7 @@ scp prometheus/prometheus.yml root@$DOKKU_HOST:/var/lib/dokku/data/storage/$DOKK
 dokku ps:restart $DOKKU_APP
 ```
 
-## 4. Deploy Grafana
+## 7. Deploy Grafana
 
 ```bash
 export DOKKU_APP=grafana
