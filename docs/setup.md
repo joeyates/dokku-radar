@@ -112,6 +112,7 @@ dokku git:from-image $DOKKU_APP ghcr.io/joeyates/dokku-radar:latest
 If you want to deploy from source, instead of that last step
 
 ```bash
+dokku config:set $DOKKU_APP PORT=9110
 git remote add dokku dokku@$DOKKU_HOST:$DOKKU_APP
 git push dokku
 ```
