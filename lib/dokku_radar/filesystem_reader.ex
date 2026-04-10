@@ -1,6 +1,8 @@
 defmodule DokkuRadar.FilesystemReader do
   @behaviour DokkuRadar.FilesystemReader.Behaviour
 
+  require Logger
+
   @dokku_root "/home/dokku"
   @dokku_data "/var/lib/dokku/data"
 
@@ -9,9 +11,20 @@ defmodule DokkuRadar.FilesystemReader do
     data_dir = Keyword.get(opts, :data_dir, @dokku_data)
     scale_path = Path.join([data_dir, "ps", app_name, "scale"])
 
+    Logger.debug("Reading app scale file", app: app_name, path: scale_path)
+
     case File.read(scale_path) do
-      {:ok, content} -> {:ok, parse_scale(content)}
-      {:error, reason} -> {:error, reason}
+      {:ok, content} ->
+        {:ok, parse_scale(content)}
+
+      {:error, reason} ->
+        Logger.warning("Failed to read app scale file",
+          app: app_name,
+          path: scale_path,
+          reason: reason
+        )
+
+        {:error, reason}
     end
   end
 
@@ -32,11 +45,23 @@ defmodule DokkuRadar.FilesystemReader do
 
     case cert_path do
       nil ->
+        Logger.debug("No TLS certificate found for app", app: app_name, tls_dir: tls_dir)
         {:error, :no_cert}
 
       path ->
+        Logger.debug("Reading TLS certificate for app", app: app_name, path: path)
+
         with {:ok, pem_data} <- File.read(path) do
           extract_expiry(pem_data)
+        else
+          {:error, reason} ->
+            Logger.warning("Failed to read TLS certificate file",
+              app: app_name,
+              path: path,
+              reason: reason
+            )
+
+            {:error, reason}
         end
     end
   end
