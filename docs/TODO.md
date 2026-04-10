@@ -104,3 +104,16 @@ GenServer lifecycle events (cache refresh start/finish, intervals).
   - `Logger.debug` for per-service-type refresh steps.
 - Use keyword-list structured logging where available (`Logger.info("msg", key: val)`) rather than string interpolation.
 - No changes to config files are needed — Elixir's Logger defaults are sufficient; operators can tune the log level via the `LOG_LEVEL` / `logger` application env.
+
+# Move `Dockerfile` to a `container/` subdirectory
+
+Status: [ ]
+
+## Description
+
+The `Dockerfile` currently lives in the repository root. Moving it to a dedicated `container/` subdirectory keeps container-related files grouped together and separates them from Elixir project files.
+
+## Technical Specifics
+
+- Move `Dockerfile` to `container/Dockerfile`.
+- Update `.github/workflows/publish.yml`: in the "Build and push" step, add `file: container/Dockerfile` to the `docker/build-push-action` inputs (the `context: .` remains unchanged so build context paths inside the Dockerfile are unaffected).
