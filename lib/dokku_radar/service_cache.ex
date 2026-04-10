@@ -7,7 +7,9 @@ defmodule DokkuRadar.ServiceCache do
   # Client API
 
   def start_link(opts \\ []) do
-    GenServer.start_link(__MODULE__, opts, name: __MODULE__)
+    {name, opts} = Keyword.pop(opts, :name, __MODULE__)
+    gen_server_opts = if name, do: [name: name], else: []
+    GenServer.start_link(__MODULE__, opts, gen_server_opts)
   end
 
   def get(server \\ __MODULE__) do

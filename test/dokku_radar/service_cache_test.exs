@@ -18,6 +18,12 @@ defmodule DokkuRadar.ServiceCacheTest do
     ]
   }
 
+  @base_opts [
+    name: nil,
+    plugin_refresh_interval: :infinity,
+    service_refresh_interval: :infinity
+  ]
+
   describe "get/1" do
     test "returns cached services after init" do
       DokkuRadar.DokkuCli.Mock
@@ -29,16 +35,12 @@ defmodule DokkuRadar.ServiceCacheTest do
         {:ok, @services_by_type["redis"]}
       end)
 
-      start_supervised!(
-        {ServiceCache,
-         [
-           dokku_cli: DokkuRadar.DokkuCli.Mock,
-           plugin_refresh_interval: :infinity,
-           service_refresh_interval: :infinity
-         ]}
-      )
+      pid =
+        start_supervised!(
+          {ServiceCache, [{:dokku_cli, DokkuRadar.DokkuCli.Mock} | @base_opts]}
+        )
 
-      assert {:ok, services} = ServiceCache.get()
+      assert {:ok, services} = ServiceCache.get(pid)
       assert length(services) == 3
     end
 
@@ -49,16 +51,12 @@ defmodule DokkuRadar.ServiceCacheTest do
         {:ok, [%{name: "my-db", status: "running", links: ["my-app"]}]}
       end)
 
-      start_supervised!(
-        {ServiceCache,
-         [
-           dokku_cli: DokkuRadar.DokkuCli.Mock,
-           plugin_refresh_interval: :infinity,
-           service_refresh_interval: :infinity
-         ]}
-      )
+      pid =
+        start_supervised!(
+          {ServiceCache, [{:dokku_cli, DokkuRadar.DokkuCli.Mock} | @base_opts]}
+        )
 
-      assert {:ok, [service]} = ServiceCache.get()
+      assert {:ok, [service]} = ServiceCache.get(pid)
 
       assert service.service_type == "postgres"
       assert service.name == "my-db"
@@ -68,36 +66,28 @@ defmodule DokkuRadar.ServiceCacheTest do
       DokkuRadar.DokkuCli.Mock
       |> expect(:list_service_types, fn _opts -> {:ok, []} end)
 
-      start_supervised!(
-        {ServiceCache,
-         [
-           dokku_cli: DokkuRadar.DokkuCli.Mock,
-           plugin_refresh_interval: :infinity,
-           service_refresh_interval: :infinity
-         ]}
-      )
+      pid =
+        start_supervised!(
+          {ServiceCache, [{:dokku_cli, DokkuRadar.DokkuCli.Mock} | @base_opts]}
+        )
 
-      assert {:ok, []} = ServiceCache.get()
+      assert {:ok, []} = ServiceCache.get(pid)
     end
 
     test "returns error when CLI fails to list service types" do
       DokkuRadar.DokkuCli.Mock
       |> expect(:list_service_types, fn _opts -> {:error, {255, "Connection refused"}} end)
 
-      start_supervised!(
-        {ServiceCache,
-         [
-           dokku_cli: DokkuRadar.DokkuCli.Mock,
-           plugin_refresh_interval: :infinity,
-           service_refresh_interval: :infinity
-         ]}
-      )
+      pid =
+        start_supervised!(
+          {ServiceCache, [{:dokku_cli, DokkuRadar.DokkuCli.Mock} | @base_opts]}
+        )
 
-      assert {:error, _reason} = ServiceCache.get()
+      assert {:error, _reason} = ServiceCache.get(pid)
     end
   end
 
-  describe "refresh/0" do
+  describe "refresh/1" do
     test "updates cached services when called" do
       DokkuRadar.DokkuCli.Mock
       |> expect(:list_service_types, 2, fn _opts -> {:ok, ["redis"]} end)
@@ -110,20 +100,15 @@ defmodule DokkuRadar.ServiceCacheTest do
 
       pid =
         start_supervised!(
-          {ServiceCache,
-           [
-             dokku_cli: DokkuRadar.DokkuCli.Mock,
-             plugin_refresh_interval: :infinity,
-             service_refresh_interval: :infinity
-           ]}
+          {ServiceCache, [{:dokku_cli, DokkuRadar.DokkuCli.Mock} | @base_opts]}
         )
 
-      {:ok, initial} = ServiceCache.get()
+      {:ok, initial} = ServiceCache.get(pid)
       assert Enum.any?(initial, &(&1.name == "cache-v1"))
 
       ServiceCache.refresh(pid)
 
-      {:ok, updated} = ServiceCache.get()
+      {:ok, updated} = ServiceCache.get(pid)
       assert Enum.any?(updated, &(&1.name == "cache-v2"))
     end
   end
