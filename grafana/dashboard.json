@@ -138,7 +138,7 @@
       "options": {
         "showHeader": true,
         "sortBy": [
-          { "desc": true, "displayName": "Value" }
+          { "desc": true, "displayName": "Last Deploy" }
         ]
       },
       "transformations": [
