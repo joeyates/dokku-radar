@@ -10,7 +10,7 @@ Move the reference `prometheus.yml` from `config/` (Elixir app config) to a top-
 
 ## Tasks
 
-- [ ] Move `config/prometheus.yml` to `prometheus/prometheus.yml`
+- [x] Move `config/prometheus.yml` to `prometheus/prometheus.yml`
 - [ ] Update `docs/setup.md`: change `scp config/prometheus.yml` → `scp prometheus/prometheus.yml`
 - [ ] Ask the user for feedback on the state of the implementation and carry out any requested corrections.
 - [ ] Mark the plan as "done".
