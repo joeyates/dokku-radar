@@ -30,10 +30,12 @@ Alternatively, delete the existing dashboard and re-import the JSON file:
 
 ## Update App Images
 
-To pull the latest image for any app:
+To pull the latest image:
+
+Check the latest version of dokku-radar here: https://github.com/joeyates/dokku-radar/pkgs/container/dokku-radar
 
 ```bash
-dokku git:from-image dokku-radar ghcr.io/joeyates/dokku-radar:latest
+dokku git:from-image dokku-radar ghcr.io/joeyates/dokku-radar:{VERSION}
 dokku git:from-image prometheus quay.io/prometheus/prometheus:latest
 dokku git:from-image grafana grafana/grafana:latest
 ```
