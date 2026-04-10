@@ -1,6 +1,8 @@
 defmodule DokkuRadar.Collector do
   @behaviour DokkuRadar.Collector.Behaviour
 
+  require Logger
+
   @impl true
   def collect(opts \\ []) do
     docker_client = Keyword.get(opts, :docker_client, DokkuRadar.DockerClient)
@@ -9,30 +11,45 @@ defmodule DokkuRadar.Collector do
     docker_opts = Keyword.get(opts, :docker_opts, [])
     filesystem_opts = Keyword.get(opts, :filesystem_opts, [])
 
-    with {:ok, containers} <- docker_client.list_containers(docker_opts) do
-      dokku_containers = Enum.filter(containers, &dokku_container?/1)
-      app_names = dokku_containers |> Enum.map(&app_name/1) |> Enum.uniq()
+    Logger.debug("Starting metrics collection")
 
-      stats_by_id = fetch_all_stats(dokku_containers, docker_client, docker_opts)
-      inspects_by_id = fetch_all_inspects(dokku_containers, docker_client, docker_opts)
-      scales_by_app = fetch_all_scales(app_names, filesystem_reader, filesystem_opts)
-      expiries_by_app = fetch_all_cert_expiries(app_names, filesystem_reader, filesystem_opts)
-      cached_services = fetch_cached_services(service_cache)
+    case docker_client.list_containers(docker_opts) do
+      {:error, reason} ->
+        Logger.warning("Metrics collection failed: could not list containers", reason: inspect(reason))
+        {:error, reason}
 
-      metrics = [
-        processes_configured_metric(scales_by_app),
-        processes_running_metric(dokku_containers),
-        container_state_metric(dokku_containers),
-        container_restarts_metric(dokku_containers, inspects_by_id),
-        last_deploy_metric(dokku_containers),
-        ssl_cert_expiry_metric(expiries_by_app),
-        cpu_usage_metric(dokku_containers, stats_by_id),
-        memory_usage_metric(dokku_containers, stats_by_id),
-        service_linked_metric(cached_services),
-        service_status_metric(cached_services)
-      ]
+      {:ok, containers} ->
+        dokku_containers = Enum.filter(containers, &dokku_container?/1)
+        app_names = dokku_containers |> Enum.map(&app_name/1) |> Enum.uniq()
 
-      {:ok, metrics}
+        Logger.info("Collecting metrics",
+          total_containers: length(containers),
+          dokku_containers: length(dokku_containers),
+          apps: length(app_names)
+        )
+
+        stats_by_id = fetch_all_stats(dokku_containers, docker_client, docker_opts)
+        inspects_by_id = fetch_all_inspects(dokku_containers, docker_client, docker_opts)
+        scales_by_app = fetch_all_scales(app_names, filesystem_reader, filesystem_opts)
+        expiries_by_app = fetch_all_cert_expiries(app_names, filesystem_reader, filesystem_opts)
+        cached_services = fetch_cached_services(service_cache)
+
+        metrics = [
+          processes_configured_metric(scales_by_app),
+          processes_running_metric(dokku_containers),
+          container_state_metric(dokku_containers),
+          container_restarts_metric(dokku_containers, inspects_by_id),
+          last_deploy_metric(dokku_containers),
+          ssl_cert_expiry_metric(expiries_by_app),
+          cpu_usage_metric(dokku_containers, stats_by_id),
+          memory_usage_metric(dokku_containers, stats_by_id),
+          service_linked_metric(cached_services),
+          service_status_metric(cached_services)
+        ]
+
+        Logger.debug("Metrics collection complete")
+
+        {:ok, metrics}
     end
   end
 
