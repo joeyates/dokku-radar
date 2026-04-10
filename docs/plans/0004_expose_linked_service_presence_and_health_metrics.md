@@ -18,6 +18,9 @@ Introduce a `DokkuRadar.DokkuCli` module that SSHes to `dokku@<host>` to query i
 - [ ] Add `dokku_service_linked` and `dokku_service_status` metric builders to `DokkuRadar.Collector`.
 - [ ] Add `MockDokkuCli` for tests, following the `DockerClient` mock pattern.
 - [ ] Document SSH key setup steps in `docs/setup.md`.
+- [ ] Add two Grafana panels to `grafana/dashboard.json`:
+  - A **Table** panel "Linked Services" showing one row per `(app, service_type, service_name)` with a `Status` column that value-maps `1` → `Running` (green) / `0` → `Stopped` (red), using a PromQL join: `dokku_service_linked * on(service_type, service_name) group_left() dokku_service_status`.
+  - A **Stat** panel "Services Down" showing count of linked services that are currently stopped: `count(dokku_service_linked * on(service_type, service_name) group_left() dokku_service_status == 0)`.
 - [ ] Ask the user for feedback on the state of the implementation and carry out any requested corrections.
 - [ ] Mark the plan as "done".
 
@@ -32,6 +35,7 @@ Introduce a `DokkuRadar.DokkuCli` module that SSHes to `dokku@<host>` to query i
 - `test/support/mock_dokku_cli.ex`
 - `docs/setup.md`
 - `config/config.exs`
+- `grafana/dashboard.json`
 
 ## Acceptance Criteria
 
@@ -42,3 +46,4 @@ Introduce a `DokkuRadar.DokkuCli` module that SSHes to `dokku@<host>` to query i
 - Scrape latency is not directly affected by SSH call duration.
 - All new modules have unit tests using `MockDokkuCli`.
 - `docs/setup.md` describes generating an SSH keypair and mounting the private key.
+- Grafana dashboard includes a "Linked Services" table panel and a "Services Down" stat panel.
