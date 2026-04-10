@@ -89,7 +89,7 @@ ssh-keygen -t ed25519 -f ~/.ssh/dokku-radar -N "" -C "dokku-radar"
 **2. Authorise the public key** on the Dokku host:
 
 ```bash
-cat ~/.ssh/dokku-radar.pub | ssh root@$DOKKU_HOST "cat >> /home/dokku/.ssh/authorized_keys"
+dokku-root ssh-keys:add dokku-radar < ~/.ssh/dokku-radar.pub
 ```
 
 Verify the key works:
@@ -115,8 +115,14 @@ dokku storage:mount dokku-radar /var/lib/dokku/data/storage/dokku-radar/.ssh:/ro
 **5. Set the Dokku host** environment variable so dokku-radar can find the
 host to SSH into:
 
+Check the IP:
+
 ```bash
-dokku config:set dokku-radar DOKKU_HOST=$DOKKU_HOST
+dokku enter dokku-radar web ip route list | grep default
+```
+
+```bash
+dokku config:set dokku-radar DOKKU_HOST={{IP}}
 ```
 
 Restart the app to apply:

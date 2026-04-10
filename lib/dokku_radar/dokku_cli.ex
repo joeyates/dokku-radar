@@ -44,7 +44,18 @@ defmodule DokkuRadar.DokkuCli do
   end
 
   defp ssh_args(host, command) do
-    ["-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=no", "dokku@#{host}", command]
+    [
+      "-o",
+      "BatchMode=yes",
+      "-o",
+      "StrictHostKeyChecking=no",
+      "-o",
+      "UserKnownHostsFile=/dev/null",
+      "-o",
+      "LogLevel=ERROR",
+      "dokku@#{host}",
+      command
+    ]
   end
 
   defp parse_service_types(output) do
