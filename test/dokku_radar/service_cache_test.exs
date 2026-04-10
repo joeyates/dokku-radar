@@ -36,9 +36,7 @@ defmodule DokkuRadar.ServiceCacheTest do
       end)
 
       pid =
-        start_supervised!(
-          {ServiceCache, [{:dokku_cli, DokkuRadar.DokkuCli.Mock} | @base_opts]}
-        )
+        start_supervised!({ServiceCache, [{:dokku_cli, DokkuRadar.DokkuCli.Mock} | @base_opts]})
 
       assert {:ok, services} = ServiceCache.get(pid)
       assert length(services) == 3
@@ -52,9 +50,7 @@ defmodule DokkuRadar.ServiceCacheTest do
       end)
 
       pid =
-        start_supervised!(
-          {ServiceCache, [{:dokku_cli, DokkuRadar.DokkuCli.Mock} | @base_opts]}
-        )
+        start_supervised!({ServiceCache, [{:dokku_cli, DokkuRadar.DokkuCli.Mock} | @base_opts]})
 
       assert {:ok, [service]} = ServiceCache.get(pid)
 
@@ -67,9 +63,7 @@ defmodule DokkuRadar.ServiceCacheTest do
       |> expect(:list_service_types, fn _opts -> {:ok, []} end)
 
       pid =
-        start_supervised!(
-          {ServiceCache, [{:dokku_cli, DokkuRadar.DokkuCli.Mock} | @base_opts]}
-        )
+        start_supervised!({ServiceCache, [{:dokku_cli, DokkuRadar.DokkuCli.Mock} | @base_opts]})
 
       assert {:ok, []} = ServiceCache.get(pid)
     end
@@ -79,9 +73,7 @@ defmodule DokkuRadar.ServiceCacheTest do
       |> expect(:list_service_types, fn _opts -> {:error, {255, "Connection refused"}} end)
 
       pid =
-        start_supervised!(
-          {ServiceCache, [{:dokku_cli, DokkuRadar.DokkuCli.Mock} | @base_opts]}
-        )
+        start_supervised!({ServiceCache, [{:dokku_cli, DokkuRadar.DokkuCli.Mock} | @base_opts]})
 
       assert {:error, _reason} = ServiceCache.get(pid)
     end
@@ -99,9 +91,7 @@ defmodule DokkuRadar.ServiceCacheTest do
       end)
 
       pid =
-        start_supervised!(
-          {ServiceCache, [{:dokku_cli, DokkuRadar.DokkuCli.Mock} | @base_opts]}
-        )
+        start_supervised!({ServiceCache, [{:dokku_cli, DokkuRadar.DokkuCli.Mock} | @base_opts]})
 
       {:ok, initial} = ServiceCache.get(pid)
       assert Enum.any?(initial, &(&1.name == "cache-v1"))

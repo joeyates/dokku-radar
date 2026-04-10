@@ -17,7 +17,7 @@ defmodule DokkuRadar.DokkuCliTest do
   NAME            VERSION          STATUS     EXPOSED PORTS  LINKS
   my-database     postgres:14.13   running                   my-app
   another-db      postgres:14.13   running                   app1,app2
-  orphan-db       postgres:14.13   stopped                   
+  orphan-db       postgres:14.13   stopped
   """
 
   describe "list_service_types/1" do
@@ -50,7 +50,9 @@ defmodule DokkuRadar.DokkuCliTest do
     end
 
     test "returns error on non-zero exit code" do
-      cmd_fn = fn "ssh", _args, _opts -> {"ssh: connect to host bad port 22: Connection refused", 255} end
+      cmd_fn = fn "ssh", _args, _opts ->
+        {"ssh: connect to host bad port 22: Connection refused", 255}
+      end
 
       assert {:error, _reason} = DokkuCli.list_service_types(cmd_fn: cmd_fn)
     end
