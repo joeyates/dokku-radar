@@ -14,11 +14,15 @@ dokku ps:restart prometheus
 The dashboard is not provisioned automatically — it is imported manually via
 the Grafana UI. To update it after making changes to `grafana/dashboard.json`:
 
-1. Open Grafana in your browser
-2. Go to **Dashboards** and open the Dokku Radar dashboard
-3. Click the dashboard settings icon (⚙) → **JSON Model**
-4. Replace the contents with the updated `grafana/dashboard.json` and click
-   **Save changes**
+First, look up the real datasource UID:
+
+DS_UID=$(curl -sf -u admin:$GRAFANA_PASSWORD $GRAFANA_URL/api/datasources/name/Prometheus | jq -r '.uid')
+
+Then post to the import endpoint with overwrite:
+
+curl -sf -X POST -H "Content-Type: application/json" -u admin:$GRAFANA_PASSWORD $GRAFANA_URL/api/dashboards/import -d "{\"dashboard\": $(cat dashboard.json), "overwrite": true, "inputs": [{"name": "DS_PROMETHEUS", "type": "datasource", "pluginId": "prometheus", "value": "$DS_UID"}]}"
+
+Where GRAFANA_URL is your Grafana public URL (e.g. https://grafana.example.com) and GRAFANA_PASSWORD is your Grafana admin password.
 
 Alternatively, delete the existing dashboard and re-import the JSON file:
 

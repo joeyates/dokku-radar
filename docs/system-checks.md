@@ -1,35 +1,49 @@
 # System Checks
 
-## Verify the Stack
+## Check dokku-radar
 
-Check dokku-radar is responding (from the host, or via `dokku enter`):
+Check dokku-radar is running:
+
+```bash
+dokku ps:report dokku-radar
+```
+
+This should include `Running: true`
+
+Check the logs:
+
+```bash
+dokku logs dokku-radar
+```
+
+Check dokku-radar's endpoint is running:
 
 ```bash
 # Health check
-dokku run dokku-radar curl -s http://localhost:9110/health
+dokku enter dokku-radar web wget -qO- http://127.0.0.1:9110/health
 # => ok
 
 # Metrics endpoint
-dokku run dokku-radar curl -s http://localhost:9110/metrics | head -20
+dokku enter dokku-radar web wget -qO- http://127.0.0.1:9110/metrics | head -20
 ```
 
-Check Prometheus is scraping successfully:
+### Check Prometheus
 
-- Open the Prometheus web UI (or via `dokku enter prometheus`)
-- Go to **Status → Targets**
-- The `dokku_radar` job should show state **UP**
+```bash
+dokku enter prometheus web wget -qO- 'http://127.0.0.1:9090/api/v1/targets?state=unhealthy' | jq .
+```
 
-Check Grafana:
+In activeTargets there should be `"job": "dokku_radar"` and `"health": "up"`.
+
+### Check Grafana
+
+Run the previous API all from the Grafana container:
+
+```bash
+dokku enter grafana web wget -qO- http://prometheus.web.1:9090/api/v1/targets | jq .
+```
 
 - Open the Dokku Radar dashboard
 - All panels should display data
-
-## Verifying dokku-radar Metrics from the Monitoring Network
-
-To check if Prometheus can reach dokku-radar without logging into the server:
-
-```bash
-ssh root@$DOKKU_HOST docker exec prometheus.web.1 wget -qO- http://dokku-radar.web.1:9110/metrics
-```
 
 See [next-steps.md](next-steps.md) for optional extensions to the monitoring stack.
