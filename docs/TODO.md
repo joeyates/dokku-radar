@@ -39,3 +39,16 @@ The "Last Deploy Timestamps" table panel shows NaN for all rows except one, beca
   - Move `unit: dateTimeFromNow` from `fieldConfig.defaults` to a field-level override on the `Last Deploy` column only
   - Update `options.sortBy` to reference `"Last Deploy"` instead of `"Value"`
 - The backend metric and Prometheus query are correct — no Elixir changes needed
+
+# Move `prometheus.yml` to a dedicated `prometheus/` directory
+
+Status: [ ]
+
+## Description
+
+The reference `prometheus.yml` config currently lives in `config/`, alongside Elixir application config. It belongs in a top-level `prometheus/` directory to make its purpose clear and separate infrastructure config from application config.
+
+## Technical Specifics
+
+- Move `config/prometheus.yml` to `prometheus/prometheus.yml`.
+- Update `docs/setup.md`: change the `scp` source path from `config/prometheus.yml` to `prometheus/prometheus.yml`.
