@@ -10,10 +10,10 @@ Move the `Dockerfile` from the repository root into a new `container/` subdirect
 
 ## Tasks
 
-- [ ] Move `Dockerfile` to `container/Dockerfile`
-- [ ] In `.github/workflows/publish.yml`, add `file: container/Dockerfile` to the "Build and push" step inputs
-- [ ] Ask the user for feedback on the state of the implementation and carry out any requested corrections.
-- [ ] Mark the plan as "done".
+- [x] Move `Dockerfile` to `container/Dockerfile`
+- [x] In `.github/workflows/publish.yml`, add `file: container/Dockerfile` to the "Build and push" step inputs
+- [x] Ask the user for feedback on the state of the implementation and carry out any requested corrections.
+- [x] Mark the plan as "done".
 
 ## Principal Files
 
