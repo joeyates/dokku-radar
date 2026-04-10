@@ -120,20 +120,24 @@ defmodule DokkuRadar.FilesystemReaderTest do
 
   defp generate_self_signed_cert(path, days) do
     {_, 0} =
-      System.cmd("openssl", [
-        "req",
-        "-x509",
-        "-newkey",
-        "rsa:2048",
-        "-keyout",
-        "/dev/null",
-        "-out",
-        path,
-        "-days",
-        to_string(days),
-        "-nodes",
-        "-subj",
-        "/CN=test"
-      ])
+      System.cmd(
+        "openssl",
+        [
+          "req",
+          "-x509",
+          "-newkey",
+          "rsa:2048",
+          "-keyout",
+          "/dev/null",
+          "-out",
+          path,
+          "-days",
+          to_string(days),
+          "-nodes",
+          "-subj",
+          "/CN=test"
+        ],
+        stderr_to_stdout: true
+      )
   end
 end
