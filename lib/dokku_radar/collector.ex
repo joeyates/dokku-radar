@@ -5,6 +5,7 @@ defmodule DokkuRadar.Collector do
   def collect(opts \\ []) do
     docker_client = Keyword.get(opts, :docker_client, DokkuRadar.DockerClient)
     filesystem_reader = Keyword.get(opts, :filesystem_reader, DokkuRadar.FilesystemReader)
+    service_cache = Keyword.get(opts, :service_cache, DokkuRadar.ServiceCache)
     docker_opts = Keyword.get(opts, :docker_opts, [])
     filesystem_opts = Keyword.get(opts, :filesystem_opts, [])
 
@@ -16,6 +17,7 @@ defmodule DokkuRadar.Collector do
       inspects_by_id = fetch_all_inspects(dokku_containers, docker_client, docker_opts)
       scales_by_app = fetch_all_scales(app_names, filesystem_reader, filesystem_opts)
       expiries_by_app = fetch_all_cert_expiries(app_names, filesystem_reader, filesystem_opts)
+      cached_services = fetch_cached_services(service_cache)
 
       metrics = [
         processes_configured_metric(scales_by_app),
@@ -25,7 +27,9 @@ defmodule DokkuRadar.Collector do
         last_deploy_metric(dokku_containers),
         ssl_cert_expiry_metric(expiries_by_app),
         cpu_usage_metric(dokku_containers, stats_by_id),
-        memory_usage_metric(dokku_containers, stats_by_id)
+        memory_usage_metric(dokku_containers, stats_by_id),
+        service_linked_metric(cached_services),
+        service_status_metric(cached_services)
       ]
 
       {:ok, metrics}
@@ -260,6 +264,58 @@ defmodule DokkuRadar.Collector do
       name: "dokku_app_memory_usage_bytes",
       type: :gauge,
       help: "Current memory usage in bytes per container",
+      samples: samples
+    }
+  end
+
+  defp fetch_cached_services(service_cache) do
+    case service_cache.get() do
+      {:ok, services} -> services
+      {:error, _} -> []
+    end
+  end
+
+  defp service_linked_metric(services) do
+    samples =
+      Enum.flat_map(services, fn service ->
+        Enum.map(service.links, fn app ->
+          %{
+            labels: %{
+              "app" => app,
+              "service_type" => service.service_type,
+              "service_name" => service.name
+            },
+            value: 1
+          }
+        end)
+      end)
+
+    %{
+      name: "dokku_service_linked",
+      type: :gauge,
+      help: "1 if the app has the named service linked",
+      samples: samples
+    }
+  end
+
+  defp service_status_metric(services) do
+    samples =
+      Enum.map(services, fn service ->
+        value = if service.status == "running", do: 1, else: 0
+
+        %{
+          labels: %{
+            "service_type" => service.service_type,
+            "service_name" => service.name
+          },
+          value: value
+        }
+      end)
+
+    %{
+      name: "dokku_service_status",
+      type: :gauge,
+      help: "1 if the service is running, 0 if stopped",
       samples: samples
     }
   end

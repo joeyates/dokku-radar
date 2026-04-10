@@ -74,6 +74,57 @@ dokku git:from-image $DOKKU_APP ghcr.io/joeyates/dokku-radar:latest
 The exporter is never exposed publicly — `proxy:disable` ensures no domains
 are assigned and no external port mapping is created.
 
+### SSH Key Setup for Service Metrics
+
+dokku-radar queries installed Dokku service plugins (postgres, redis, etc.) via
+SSH to expose `dokku_service_linked` and `dokku_service_status` metrics. This
+requires a dedicated SSH keypair with access to the `dokku` user on the host.
+
+**1. Generate a dedicated keypair** on your local machine:
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/dokku-radar -N "" -C "dokku-radar"
+```
+
+**2. Authorise the public key** on the Dokku host:
+
+```bash
+cat ~/.ssh/dokku-radar.pub | ssh root@$DOKKU_HOST "cat >> /home/dokku/.ssh/authorized_keys"
+```
+
+Verify the key works:
+
+```bash
+ssh -i ~/.ssh/dokku-radar dokku@$DOKKU_HOST plugin:list
+```
+
+**3. Store the private key** in Dokku's storage directory:
+
+```bash
+ssh root@$DOKKU_HOST "mkdir -p /var/lib/dokku/data/storage/dokku-radar/.ssh"
+scp ~/.ssh/dokku-radar root@$DOKKU_HOST:/var/lib/dokku/data/storage/dokku-radar/.ssh/id_ed25519
+ssh root@$DOKKU_HOST "chmod 600 /var/lib/dokku/data/storage/dokku-radar/.ssh/id_ed25519"
+```
+
+**4. Mount the SSH directory** into the container:
+
+```bash
+dokku storage:mount dokku-radar /var/lib/dokku/data/storage/dokku-radar/.ssh:/root/.ssh:ro
+```
+
+**5. Set the Dokku host** environment variable so dokku-radar can find the
+host to SSH into:
+
+```bash
+dokku config:set dokku-radar DOKKU_HOST=$DOKKU_HOST
+```
+
+Restart the app to apply:
+
+```bash
+dokku ps:restart dokku-radar
+```
+
 ## 3. Deploy Prometheus
 
 ```bash

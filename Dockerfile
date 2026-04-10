@@ -29,7 +29,7 @@ RUN mix release
 # --- Runtime stage ---
 FROM ${RUNNER_IMAGE}
 
-RUN apk add --no-cache libstdc++ openssl ncurses-libs
+RUN apk add --no-cache libstdc++ openssh-client openssl ncurses-libs
 
 WORKDIR /app
 
