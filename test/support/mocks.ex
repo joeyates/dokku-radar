@@ -1,0 +1,8 @@
+Mox.defmock(DokkuRadar.DockerClient.Mock, for: DokkuRadar.DockerClient.Behaviour)
+Mox.defmock(DokkuRadar.DokkuCli.Mock, for: DokkuRadar.DokkuCli.Behaviour)
+Mox.defmock(DokkuRadar.FilesystemReader.Mock, for: DokkuRadar.FilesystemReader.Behaviour)
+Mox.defmock(DokkuRadar.Service.Mock, for: DokkuRadar.Service.Behaviour)
+Mox.defmock(DokkuRadar.ServicePlugin.Mock, for: DokkuRadar.ServicePlugin.Behaviour)
+Mox.defmock(DokkuRadar.ServicePlugins.Mock, for: DokkuRadar.ServicePlugins.Behaviour)
+Mox.defmock(DokkuRadar.ServiceCache.Mock, for: DokkuRadar.ServiceCache.Behaviour)
+Mox.defmock(DokkuRadar.Collector.Mock, for: DokkuRadar.Collector.Behaviour)

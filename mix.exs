@@ -6,9 +6,10 @@ defmodule DokkuRadar.MixProject do
       app: :dokku_radar,
       version: "0.1.4",
       elixir: "~> 1.18",
-      start_permanent: Mix.env() == :prod,
       aliases: aliases(),
-      deps: deps()
+      elixirc_paths: elixirc_paths(Mix.env()),
+      deps: deps(),
+      start_permanent: Mix.env() == :prod
     ]
   end
 
@@ -41,4 +42,7 @@ defmodule DokkuRadar.MixProject do
       {:req, "~> 0.5.17"}
     ]
   end
+
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_env), do: ["lib"]
 end
