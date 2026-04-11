@@ -1,13 +1,18 @@
 defmodule DokkuRadar.ServiceCache do
-  @behaviour DokkuRadar.ServiceCache.Behaviour
+  # @behaviour DokkuRadar.ServiceCache.Behaviour
 
   use GenServer
 
+  alias DokkuRadar.Service
+  alias DokkuRadar.ServicePlugin
+  alias DokkuRadar.ServicePlugins
+
   require Logger
 
-  @default_plugin_refresh_interval :timer.minutes(5)
-  @default_service_refresh_interval :timer.seconds(30)
+  # TODO: set to 10'
+  @default_refresh_interval :timer.minutes(1)
 
+  #################
   # Client API
 
   def start_link(opts \\ []) do
@@ -16,118 +21,194 @@ defmodule DokkuRadar.ServiceCache do
     GenServer.start_link(__MODULE__, opts, gen_server_opts)
   end
 
-  @impl true
-  def get(server \\ __MODULE__) do
-    GenServer.call(server, :get, :infinity)
+  def service_links(server \\ __MODULE__) do
+    GenServer.call(server, :service_links)
   end
 
   def refresh(server \\ __MODULE__) do
     GenServer.cast(server, :refresh)
   end
 
-  # Server callbacks
+  #################
+  # Setup
 
   @impl true
   def init(opts) do
-    dokku_cli = Keyword.get(opts, :dokku_cli, DokkuRadar.DokkuCli)
-
-    plugin_refresh_interval =
-      Keyword.get(opts, :plugin_refresh_interval, @default_plugin_refresh_interval)
-
-    service_refresh_interval =
-      Keyword.get(opts, :service_refresh_interval, @default_service_refresh_interval)
+    refresh_interval = Keyword.get(opts, :refresh_interval, @default_refresh_interval)
 
     state = %{
-      dokku_cli: dokku_cli,
-      plugin_refresh_interval: plugin_refresh_interval,
-      service_refresh_interval: service_refresh_interval,
-      cache: nil
+      refresh_interval: refresh_interval,
+      update_task: nil,
+      plugins: nil,
+      services: nil,
+      service_links: nil
     }
 
-    state = load(state)
-
-    if plugin_refresh_interval != :infinity do
-      Process.send_after(self(), :refresh_plugins, plugin_refresh_interval)
-    end
-
-    if service_refresh_interval != :infinity do
-      Process.send_after(self(), :refresh_services, service_refresh_interval)
-    end
-
-    {:ok, state}
+    {:ok, state, {:continue, :load}}
   end
 
   @impl true
-  def handle_call(:get, _from, state) do
-    {:reply, state.cache, state}
-  end
-
-  @impl true
-  def handle_cast(:refresh, state) do
-    {:noreply, load(state)}
-  end
-
-  @impl true
-  def handle_info(:refresh_plugins, state) do
-    state = load(state)
-
-    Process.send_after(self(), :refresh_plugins, state.plugin_refresh_interval)
+  def handle_continue(:load, %{update_task: nil} = state) do
+    state = initiate_load(state)
 
     {:noreply, state}
   end
 
-  @impl true
-  def handle_info(:refresh_services, state) do
-    state = refresh_services(state)
+  #################
+  # Handle Client Calls
 
-    Process.send_after(self(), :refresh_services, state.service_refresh_interval)
+  @impl true
+  def handle_call(:service_links, _from, %{service_links: nil} = state) do
+    {:reply, {:error, :no_data}, state}
+  end
+
+  def handle_call(:service_links, _from, %{service_links: service_links} = state) do
+    {:reply, {:ok, service_links}, state}
+  end
+
+  @impl true
+  def handle_cast(:refresh, %{update_task: nil} = state) do
+    Logger.debug("#{__MODULE__}.handle_cast(:refresh, state)")
+    state = initiate_load(state)
 
     {:noreply, state}
   end
 
-  defp load(state) do
-    Logger.info("Loading Dokku service cache")
+  def handle_cast(:refresh, %{update_task: _ref} = state) do
+    Logger.warning(
+      "#{__MODULE__}.handle_cast(:refresh, state) received when load is running - ignoring"
+    )
 
-    case state.dokku_cli.list_service_types([]) do
-      {:ok, types} ->
-        services = fetch_all_services(types, state.dokku_cli)
-        Logger.info("Dokku service cache loaded", service_count: length(services))
-        %{state | cache: {:ok, services}}
+    {:noreply, state}
+  end
 
+  # Initiate Timed Updates
+
+  @impl true
+  def handle_info(:refresh, %{update_task: nil} = state) do
+    Logger.debug("#{__MODULE__}.handle_info(:refresh, state)")
+    state = initiate_load(state)
+
+    {:noreply, state}
+  end
+
+  def handle_info(:refresh, %{update_task: %Task{} = task} = state) do
+    Logger.warning(
+      "#{__MODULE__}.handle_info(:refresh, state) received when load is running - restarting"
+    )
+
+    Task.shutdown(task, :brutal_kill)
+
+    state
+    |> demonitor()
+    |> maybe_enqueue_refresh()
+  end
+
+  #################
+  # Task completion/failure
+
+  def handle_info(
+        {ref, {:update, plugins, services, service_links}},
+        %{update_task: %Task{ref: ref}} = state
+      ) do
+    Logger.debug("#{__MODULE__}.handle_info({..., {:update, ...}})")
+    Logger.info("plugins: #{inspect(plugins)}")
+    Logger.info("services: #{inspect(services)}")
+    Logger.info("service_links: #{inspect(service_links)}")
+
+    state = demonitor(state)
+    state = %{state | plugins: plugins, services: services, service_links: service_links}
+
+    {:noreply, state}
+  end
+
+  def handle_info({ref, {:error, reason}}, %{update_task: %Task{ref: ref}} = state) do
+    Logger.error("#{__MODULE__}.handle_info({..., {:error, #{inspect(reason)}}})")
+
+    state =
+      state
+      |> demonitor()
+      |> maybe_enqueue_refresh()
+
+    {:noreply, state}
+  end
+
+  def handle_info({:DOWN, ref, :process, _pid, reason}, %{update_task: %Task{ref: ref}} = state) do
+    Logger.error("#{__MODULE__} load plugins task failed: #{inspect(reason)}")
+    maybe_enqueue_refresh(state)
+
+    {:noreply, %{state | update_task: nil}}
+  end
+
+  #################
+  # Update plugins, services and services list
+
+  defp initiate_load(state) do
+    Logger.info("Initiating load")
+
+    task =
+      Task.Supervisor.async_nolink(
+        DokkuRadar.TaskSupervisor,
+        fn -> load() end
+      )
+
+    Map.put(state, :update_task, task)
+  end
+
+  defp load() do
+    with {:ok, plugins} <- load_plugins(),
+         {:ok, services} <- load_services(plugins),
+         {:ok, service_links} <- load_service_links(services) do
+      {:update, plugins, services, service_links}
+    else
       {:error, reason} ->
-        Logger.warning("Failed to load Dokku service cache", reason: inspect(reason))
-        %{state | cache: {:error, reason}}
+        {:failed, {:error, reason}}
     end
   end
 
-  defp refresh_services(%{cache: {:ok, _}} = state) do
-    Logger.info("Refreshing Dokku service statuses")
+  #################
+  # Load Info from Dokku
 
-    case state.dokku_cli.list_service_types([]) do
-      {:ok, types} ->
-        services = fetch_all_services(types, state.dokku_cli)
-        Logger.info("Dokku service statuses refreshed", service_count: length(services))
-        %{state | cache: {:ok, services}}
+  defp load_plugins(), do: ServicePlugins.list()
 
-      {:error, reason} ->
-        Logger.warning("Failed to refresh Dokku service statuses", reason: inspect(reason))
-        %{state | cache: {:error, reason}}
-    end
+  defp load_services(plugins) do
+    services =
+      Enum.reduce(plugins, %{}, fn plugin, acc ->
+        case ServicePlugin.services(plugin) do
+          {:ok, services} ->
+            Map.put(acc, plugin, services)
+        end
+      end)
+
+    {:ok, services}
   end
 
-  defp refresh_services(state), do: load(state)
+  defp load_service_links(services) do
+    service_links =
+      Enum.flat_map(services, fn {plugin, plugin_services} ->
+        Enum.map(plugin_services, fn plugin_service ->
+          case Service.links(plugin, plugin_service) do
+            {:ok, links} ->
+              %{plugin: plugin, service: plugin_service, links: links}
+          end
+        end)
+      end)
 
-  defp fetch_all_services(service_types, dokku_cli) do
-    Enum.flat_map(service_types, fn type ->
-      Logger.debug("Fetching services for type", service_type: type)
+    {:ok, service_links}
+  end
 
-      case dokku_cli.list_services(type, []) do
-        {:ok, services} ->
-          Enum.map(services, &Map.put(&1, :service_type, type))
+  defp maybe_enqueue_refresh(%{refresh_interval: nil}), do: :ok
 
-        {:error, _} ->
-          []
-      end
-    end)
+  defp maybe_enqueue_refresh(%{refresh_interval: interval, update_task: nil}) do
+    Logger.debug("Enqueuing refresh in #{interval}ms")
+    Process.send_after(self(), :refresh, interval)
+  end
+
+  defp maybe_enqueue_refresh(_state), do: :ok
+
+  defp demonitor(%{update_task: %Task{ref: ref}} = state) do
+    Process.demonitor(ref, [:flush])
+
+    %{state | update_task: nil}
   end
 end

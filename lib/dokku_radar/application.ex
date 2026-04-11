@@ -7,6 +7,7 @@ defmodule DokkuRadar.Application do
 
     children = [
       DokkuRadar.ServiceCache,
+      {Task.Supervisor, name: DokkuRadar.TaskSupervisor},
       {Bandit, plug: DokkuRadar.Router, port: port}
     ]
 
