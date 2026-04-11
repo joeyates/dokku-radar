@@ -34,6 +34,12 @@ ssh -t dokku@$DOKKU_HOST enter dokku-radar web '/bin/sh -c "ssh -o BatchMode=yes
 tHostKeyChecking=no dokku@$DOKKU_HOST plugin:list"'
 ```
 
+Access an IEx shell in the running application:
+
+```bash
+dokku enter $DOKKU_APP web iex --remsh $DOKKU_APP
+```
+
 ### Check Prometheus
 
 ```bash
