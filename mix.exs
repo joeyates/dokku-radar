@@ -13,6 +13,12 @@ defmodule DokkuRadar.MixProject do
   end
 
   def application() do
+    application(Mix.env())
+  end
+
+  def application(:test), do: []
+
+  def application(_env) do
     [
       extra_applications: [:logger],
       mod: {DokkuRadar.Application, []}

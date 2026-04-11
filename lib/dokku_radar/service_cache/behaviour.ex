@@ -1,3 +1,3 @@
 defmodule DokkuRadar.ServiceCache.Behaviour do
-  @callback get() :: {:ok, [map()]} | {:error, term()}
+  @callback service_links() :: {:ok, [map()]} | {:error, term()}
 end

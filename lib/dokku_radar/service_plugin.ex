@@ -10,7 +10,7 @@ defmodule DokkuRadar.ServicePlugin do
         {:ok, services}
 
       {:error, output, exit_code} ->
-        {:error, {exit_code, output}}
+        {:error, exit_code, output}
     end
   end
 

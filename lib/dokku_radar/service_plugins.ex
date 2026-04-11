@@ -28,7 +28,7 @@ defmodule DokkuRadar.ServicePlugins do
           output: String.slice(output, 0, 200)
         )
 
-        {:error, {exit_code, output}}
+        {:error, exit_code, output}
     end
   end
 

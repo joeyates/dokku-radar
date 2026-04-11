@@ -1,16 +1,23 @@
 defmodule DokkuRadar.ServiceCache do
-  # @behaviour DokkuRadar.ServiceCache.Behaviour
+  @behaviour DokkuRadar.ServiceCache.Behaviour
 
   use GenServer
 
-  alias DokkuRadar.Service
-  alias DokkuRadar.ServicePlugin
-  alias DokkuRadar.ServicePlugins
-
   require Logger
 
-  # TODO: set to 10'
-  @default_refresh_interval :timer.minutes(1)
+  @service_plugins Application.compile_env(
+                     :dokku_radar,
+                     :"DokkuRadar.ServicePlugins",
+                     DokkuRadar.ServicePlugins
+                   )
+  @service_plugin Application.compile_env(
+                    :dokku_radar,
+                    :"DokkuRadar.ServicePlugin",
+                    DokkuRadar.ServicePlugin
+                  )
+  @service Application.compile_env(:dokku_radar, :"DokkuRadar.Service", DokkuRadar.Service)
+
+  @default_refresh_interval :timer.minutes(10)
 
   #################
   # Client API
@@ -21,8 +28,13 @@ defmodule DokkuRadar.ServiceCache do
     GenServer.start_link(__MODULE__, opts, gen_server_opts)
   end
 
+  @impl DokkuRadar.ServiceCache.Behaviour
   def service_links(server \\ __MODULE__) do
     GenServer.call(server, :service_links)
+  end
+
+  def status(server \\ __MODULE__) do
+    GenServer.call(server, :status)
   end
 
   def refresh(server \\ __MODULE__) do
@@ -32,22 +44,23 @@ defmodule DokkuRadar.ServiceCache do
   #################
   # Setup
 
-  @impl true
+  @impl GenServer
   def init(opts) do
     refresh_interval = Keyword.get(opts, :refresh_interval, @default_refresh_interval)
 
     state = %{
-      refresh_interval: refresh_interval,
-      update_task: nil,
       plugins: nil,
       services: nil,
-      service_links: nil
+      service_links: nil,
+      refresh_interval: refresh_interval,
+      update_task: nil,
+      error: nil
     }
 
     {:ok, state, {:continue, :load}}
   end
 
-  @impl true
+  @impl GenServer
   def handle_continue(:load, %{update_task: nil} = state) do
     state = initiate_load(state)
 
@@ -57,7 +70,7 @@ defmodule DokkuRadar.ServiceCache do
   #################
   # Handle Client Calls
 
-  @impl true
+  @impl GenServer
   def handle_call(:service_links, _from, %{service_links: nil} = state) do
     {:reply, {:error, :no_data}, state}
   end
@@ -66,7 +79,26 @@ defmodule DokkuRadar.ServiceCache do
     {:reply, {:ok, service_links}, state}
   end
 
-  @impl true
+  def handle_call(:status, _from, state) do
+    status =
+      cond do
+        not is_nil(state.update_task) ->
+          :updating
+
+        not is_nil(state.error) ->
+          :error
+
+        not is_nil(state.service_links) ->
+          :ready
+
+        true ->
+          :unexpected
+      end
+
+    {:reply, status, state}
+  end
+
+  @impl GenServer
   def handle_cast(:refresh, %{update_task: nil} = state) do
     Logger.debug("#{__MODULE__}.handle_cast(:refresh, state)")
     state = initiate_load(state)
@@ -84,7 +116,7 @@ defmodule DokkuRadar.ServiceCache do
 
   # Initiate Timed Updates
 
-  @impl true
+  @impl GenServer
   def handle_info(:refresh, %{update_task: nil} = state) do
     Logger.debug("#{__MODULE__}.handle_info(:refresh, state)")
     state = initiate_load(state)
@@ -102,6 +134,8 @@ defmodule DokkuRadar.ServiceCache do
     state
     |> demonitor()
     |> maybe_enqueue_refresh()
+
+    {:noreply, state}
   end
 
   #################
@@ -112,12 +146,16 @@ defmodule DokkuRadar.ServiceCache do
         %{update_task: %Task{ref: ref}} = state
       ) do
     Logger.debug("#{__MODULE__}.handle_info({..., {:update, ...}})")
-    Logger.info("plugins: #{inspect(plugins)}")
-    Logger.info("services: #{inspect(services)}")
-    Logger.info("service_links: #{inspect(service_links)}")
 
     state = demonitor(state)
-    state = %{state | plugins: plugins, services: services, service_links: service_links}
+
+    state = %{
+      state
+      | plugins: plugins,
+        services: services,
+        service_links: service_links,
+        error: nil
+    }
 
     {:noreply, state}
   end
@@ -129,6 +167,8 @@ defmodule DokkuRadar.ServiceCache do
       state
       |> demonitor()
       |> maybe_enqueue_refresh()
+
+    state = %{state | error: reason}
 
     {:noreply, state}
   end
@@ -162,19 +202,19 @@ defmodule DokkuRadar.ServiceCache do
       {:update, plugins, services, service_links}
     else
       {:error, reason} ->
-        {:failed, {:error, reason}}
+        {:error, reason}
     end
   end
 
   #################
   # Load Info from Dokku
 
-  defp load_plugins(), do: ServicePlugins.list()
+  defp load_plugins(), do: @service_plugins.list()
 
   defp load_services(plugins) do
     services =
       Enum.reduce(plugins, %{}, fn plugin, acc ->
-        case ServicePlugin.services(plugin) do
+        case @service_plugin.services(plugin) do
           {:ok, services} ->
             Map.put(acc, plugin, services)
         end
@@ -187,7 +227,7 @@ defmodule DokkuRadar.ServiceCache do
     service_links =
       Enum.flat_map(services, fn {plugin, plugin_services} ->
         Enum.map(plugin_services, fn plugin_service ->
-          case Service.links(plugin, plugin_service) do
+          case @service.links(plugin, plugin_service) do
             {:ok, links} ->
               %{type: plugin, name: plugin_service, links: links, status: "running"}
           end
@@ -197,14 +237,16 @@ defmodule DokkuRadar.ServiceCache do
     {:ok, service_links}
   end
 
-  defp maybe_enqueue_refresh(%{refresh_interval: nil}), do: :ok
+  defp maybe_enqueue_refresh(%{refresh_interval: nil} = state), do: state
 
-  defp maybe_enqueue_refresh(%{refresh_interval: interval, update_task: nil}) do
+  defp maybe_enqueue_refresh(%{refresh_interval: interval, update_task: nil} = state) do
     Logger.debug("Enqueuing refresh in #{interval}ms")
     Process.send_after(self(), :refresh, interval)
+
+    state
   end
 
-  defp maybe_enqueue_refresh(_state), do: :ok
+  defp maybe_enqueue_refresh(state), do: state
 
   defp demonitor(%{update_task: %Task{ref: ref}} = state) do
     Process.demonitor(ref, [:flush])
