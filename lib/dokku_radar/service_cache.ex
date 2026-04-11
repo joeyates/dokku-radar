@@ -189,7 +189,7 @@ defmodule DokkuRadar.ServiceCache do
         Enum.map(plugin_services, fn plugin_service ->
           case Service.links(plugin, plugin_service) do
             {:ok, links} ->
-              %{plugin: plugin, service: plugin_service, links: links}
+              %{type: plugin, name: plugin_service, links: links, status: "running"}
           end
         end)
       end)

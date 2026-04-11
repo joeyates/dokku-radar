@@ -289,7 +289,7 @@ defmodule DokkuRadar.Collector do
   end
 
   defp fetch_cached_services(service_cache) do
-    case service_cache.get() do
+    case service_cache.service_links() do
       {:ok, services} -> services
       {:error, _} -> []
     end
@@ -302,7 +302,7 @@ defmodule DokkuRadar.Collector do
           %{
             labels: %{
               "app" => app,
-              "service_type" => service.service_type,
+              "service_type" => service.type,
               "service_name" => service.name
             },
             value: 1
@@ -325,7 +325,7 @@ defmodule DokkuRadar.Collector do
 
         %{
           labels: %{
-            "service_type" => service.service_type,
+            "service_type" => service.type,
             "service_name" => service.name
           },
           value: value
