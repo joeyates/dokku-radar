@@ -16,6 +16,7 @@ defmodule DokkuRadar.DokkuCli do
   )
 
   @default_host "localhost"
+  @certificate_path "/data/.ssh/id_ed25519"
 
   @impl true
   def list_service_types(opts \\ []) do
@@ -74,6 +75,8 @@ defmodule DokkuRadar.DokkuCli do
 
   defp ssh_args(host, command) do
     [
+      "-i",
+      @certificate_path,
       "-o",
       "BatchMode=yes",
       "-o",

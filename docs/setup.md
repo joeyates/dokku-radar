@@ -94,13 +94,14 @@ dokku network:set $DOKKU_APP attach-post-deploy monitoring
 The exporter is never exposed publicly — `proxy:disable` ensures no domains
 are assigned and no external port mapping is created.
 
-## 3. Store the private key** in Dokku's storage directory
+## 3. Make the private key available to the app
 
 ```bash
 ssh root@$DOKKU_HOST "mkdir -p /var/lib/dokku/data/storage/$DOKKU_APP/.ssh"
 scp ~/.ssh/dokku-radar root@$DOKKU_HOST:/var/lib/dokku/data/storage/$DOKKU_APP/.ssh/id_ed25519
 ssh root@$DOKKU_HOST "chmod 600 /var/lib/dokku/data/storage/$DOKKU_APP/.ssh/id_ed25519"
-dokku storage:mount $DOKKU_APP /var/lib/dokku/data/storage/$DOKKU_APP/.ssh:/root/.ssh:ro
+ssh root@$DOKKU_HOST "chown -R 32767:32767 /var/lib/dokku/data/storage/$DOKKU_APP/.ssh"
+dokku storage:mount $DOKKU_APP /var/lib/dokku/data/storage/$DOKKU_APP/.ssh:/data/.ssh:ro
 ```
 
 ## 4. Deploy
