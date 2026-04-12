@@ -105,6 +105,28 @@ GenServer lifecycle events (cache refresh start/finish, intervals).
 - Use keyword-list structured logging where available (`Logger.info("msg", key: val)`) rather than string interpolation.
 - No changes to config files are needed — Elixir's Logger defaults are sufficient; operators can tune the log level via the `LOG_LEVEL` / `logger` application env.
 
+# Merge behaviour modules into main modules
+
+Status: [ ]
+
+## Description
+
+Move `@callback` declarations from separate `*.Behaviour` submodules into their parent modules, following the existing pattern in `DokkuRadar.ServiceCache`. Delete the now-redundant `behaviour.ex` files. Update `test/support/mocks.ex` to reference the main modules instead of the `Behaviour` submodules. Tests may be left broken after this change; they will be fixed in the next plan.
+
+## Technical Specifics
+
+- For each of the following pairs, move `@callback` declarations into the main module and delete the `behaviour.ex` file:
+  - `DokkuRadar.DockerClient` / `DokkuRadar.DockerClient.Behaviour`
+  - `DokkuRadar.FilesystemReader` / `DokkuRadar.FilesystemReader.Behaviour`
+  - `DokkuRadar.Service` / `DokkuRadar.Service.Behaviour`
+  - `DokkuRadar.ServicePlugin` / `DokkuRadar.ServicePlugin.Behaviour`
+  - `DokkuRadar.ServicePlugins` / `DokkuRadar.ServicePlugins.Behaviour`
+  - `DokkuRadar.Collector` / `DokkuRadar.Collector.Behaviour`
+- For `DokkuRadar.DokkuCli`: delete `DokkuRadar.DokkuCli.Behaviour` but do not add `@callback` declarations to the main module yet (its behaviour methods are not yet implemented).
+- Remove `@behaviour ModuleName.Behaviour` and `@impl true` from each main module (callbacks are declared in the same module, not a separate behaviour).
+- In `test/support/mocks.ex`, change each `for: DokkuRadar.X.Behaviour` to `for: DokkuRadar.X` (matching the existing `DokkuRadar.ServiceCache.Mock` entry). Remove the `DokkuRadar.DokkuCli.Mock` entry entirely (since `DokkuCli` has no `@callback` declarations yet).
+- Tests may be left broken after this change.
+
 # Move `Dockerfile` to a `container/` subdirectory
 
 Status: [x]
