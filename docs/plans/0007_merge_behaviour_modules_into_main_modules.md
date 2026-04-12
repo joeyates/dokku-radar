@@ -11,7 +11,7 @@ Move `@callback` declarations from separate `*.Behaviour` submodules into their 
 ## Tasks
 
 - [x] Move `@callback` declarations from `DokkuRadar.DockerClient.Behaviour` into `DokkuRadar.DockerClient`; remove `@behaviour` and `@impl true`; delete `lib/dokku_radar/docker_client/behaviour.ex`
-- [ ] Move `@callback` declarations from `DokkuRadar.FilesystemReader.Behaviour` into `DokkuRadar.FilesystemReader`; remove `@behaviour` and `@impl true`; delete `lib/dokku_radar/filesystem_reader/behaviour.ex`
+- [x] Move `@callback` declarations from `DokkuRadar.FilesystemReader.Behaviour` into `DokkuRadar.FilesystemReader`; remove `@behaviour` and `@impl true`; delete `lib/dokku_radar/filesystem_reader/behaviour.ex`
 - [ ] Move `@callback` declarations from `DokkuRadar.Service.Behaviour` into `DokkuRadar.Service`; remove `@behaviour` and `@impl true`; delete `lib/dokku_radar/service/behaviour.ex`
 - [ ] Move `@callback` declarations from `DokkuRadar.ServicePlugin.Behaviour` into `DokkuRadar.ServicePlugin`; delete `lib/dokku_radar/service_plugin/behaviour.ex`
 - [ ] Move `@callback` declarations from `DokkuRadar.ServicePlugins.Behaviour` into `DokkuRadar.ServicePlugins`; delete `lib/dokku_radar/service_plugins/behaviour.ex`
