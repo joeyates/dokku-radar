@@ -1,12 +1,12 @@
 defmodule DokkuRadar.Service do
   @callback links(String.t(), String.t()) :: {:ok, [String.t()]} | {:error, term()}
 
-  alias DokkuRadar.DokkuCli
+  @dokku_cli Application.compile_env(:dokku_radar, :"DokkuRadar.DokkuCli", DokkuRadar.DokkuCli)
 
   require Logger
 
   def links(plugin, service) do
-    case DokkuCli.call("#{plugin}:links", [service]) do
+    case @dokku_cli.call("#{plugin}:links", [service]) do
       {:ok, output} ->
         links = parse_plain_list(output)
         {:ok, links}

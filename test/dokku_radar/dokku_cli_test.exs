@@ -1,105 +1,68 @@
 defmodule DokkuRadar.DokkuCliTest do
   use ExUnit.Case, async: true
 
+  import Mox
+
   alias DokkuRadar.DokkuCli
 
-  @plugin_list_output """
-  =====> Installed plugins
-    access          deployed access:
-    letsencrypt     deployed letsencrypt:latest
-    postgres        deployed postgres:latest
-    redis           deployed redis:latest
-    scheduler-simple deployed scheduler-simple:latest
-  """
+  setup :verify_on_exit!
 
-  @postgres_list_output """
-  =====> Postgres services
-  NAME            VERSION          STATUS     EXPOSED PORTS  LINKS
-  my-database     postgres:14.13   running                   my-app
-  another-db      postgres:14.13   running                   app1,app2
-  orphan-db       postgres:14.13   stopped
-  """
+  @dokku_host "myhost.example.com"
+  @ssh_certificate_path "/tmp/test_key"
 
-  describe "list_service_types/1" do
-    test "returns known service types found in plugin list" do
-      cmd_fn = fn "ssh", _args, _opts -> {@plugin_list_output, 0} end
+  setup do
+    Application.put_env(:dokku_radar, DokkuRadar.DokkuCli,
+      dokku_host: @dokku_host,
+      ssh_certificate_path: @ssh_certificate_path
+    )
 
-      assert {:ok, types} = DokkuCli.list_service_types(cmd_fn: cmd_fn)
+    on_exit(fn -> Application.delete_env(:dokku_radar, DokkuRadar.DokkuCli) end)
 
-      assert "postgres" in types
-      assert "redis" in types
+    :ok
+  end
+
+  describe "call/1" do
+    test "returns {:ok, output} on exit code 0" do
+      expect(System.Mock, :cmd, fn "ssh", _args, _opts -> {"plugin output", 0} end)
+
+      assert {:ok, "plugin output"} = DokkuCli.call("plugin:list")
     end
 
-    test "ignores non-service plugins" do
-      cmd_fn = fn "ssh", _args, _opts -> {@plugin_list_output, 0} end
-
-      assert {:ok, types} = DokkuCli.list_service_types(cmd_fn: cmd_fn)
-
-      refute "access" in types
-      refute "letsencrypt" in types
-      refute "scheduler-simple" in types
-    end
-
-    test "passes the configured SSH host" do
-      cmd_fn = fn "ssh", args, _opts ->
-        assert Enum.member?(args, "dokku@myhost.example.com")
-        {@plugin_list_output, 0}
-      end
-
-      DokkuCli.list_service_types(cmd_fn: cmd_fn, host: "myhost.example.com")
-    end
-
-    test "returns error on non-zero exit code" do
-      cmd_fn = fn "ssh", _args, _opts ->
+    test "returns {:error, output, exit_code} on non-zero exit" do
+      expect(System.Mock, :cmd, fn "ssh", _args, _opts ->
         {"ssh: connect to host bad port 22: Connection refused", 255}
-      end
+      end)
 
-      assert {:error, _reason} = DokkuCli.list_service_types(cmd_fn: cmd_fn)
+      assert {:error, _output, 255} = DokkuCli.call("plugin:list")
+    end
+
+    test "includes the configured SSH host in arguments" do
+      expect(System.Mock, :cmd, fn "ssh", args, _opts ->
+        assert "dokku@#{@dokku_host}" in args
+        {"", 0}
+      end)
+
+      DokkuCli.call("plugin:list")
+    end
+
+    test "includes the configured SSH certificate path in arguments" do
+      expect(System.Mock, :cmd, fn "ssh", args, _opts ->
+        assert @ssh_certificate_path in args
+        {"", 0}
+      end)
+
+      DokkuCli.call("plugin:list")
     end
   end
 
-  describe "list_services/2" do
-    test "returns services with name, status, and links" do
-      cmd_fn = fn "ssh", _args, _opts -> {@postgres_list_output, 0} end
+  describe "call/2" do
+    test "appends extra args to the SSH command" do
+      expect(System.Mock, :cmd, fn "ssh", args, _opts ->
+        assert "my-database" in args
+        {"link output", 0}
+      end)
 
-      assert {:ok, services} = DokkuCli.list_services("postgres", cmd_fn: cmd_fn)
-
-      assert length(services) == 3
-    end
-
-    test "parses running service linked to a single app" do
-      cmd_fn = fn "ssh", _args, _opts -> {@postgres_list_output, 0} end
-
-      assert {:ok, services} = DokkuCli.list_services("postgres", cmd_fn: cmd_fn)
-
-      svc = Enum.find(services, &(&1.name == "my-database"))
-      assert svc.status == "running"
-      assert svc.links == ["my-app"]
-    end
-
-    test "parses service linked to multiple apps" do
-      cmd_fn = fn "ssh", _args, _opts -> {@postgres_list_output, 0} end
-
-      assert {:ok, services} = DokkuCli.list_services("postgres", cmd_fn: cmd_fn)
-
-      svc = Enum.find(services, &(&1.name == "another-db"))
-      assert svc.links == ["app1", "app2"]
-    end
-
-    test "parses stopped service with no links" do
-      cmd_fn = fn "ssh", _args, _opts -> {@postgres_list_output, 0} end
-
-      assert {:ok, services} = DokkuCli.list_services("postgres", cmd_fn: cmd_fn)
-
-      svc = Enum.find(services, &(&1.name == "orphan-db"))
-      assert svc.status == "stopped"
-      assert svc.links == []
-    end
-
-    test "returns error on non-zero exit code" do
-      cmd_fn = fn "ssh", _args, _opts -> {"Unknown service type: badtype", 1} end
-
-      assert {:error, _reason} = DokkuCli.list_services("badtype", cmd_fn: cmd_fn)
+      assert {:ok, "link output"} = DokkuCli.call("postgres:links", ["my-database"])
     end
   end
 end

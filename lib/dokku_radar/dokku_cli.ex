@@ -1,10 +1,12 @@
 defmodule DokkuRadar.DokkuCli do
-  # @behaviour DokkuRadar.DokkuCli.Behaviour
-
   require Logger
 
-  @system Application.compile_env(:dokku_radar, :system, System)
+  @system Application.compile_env(:dokku_radar, :System, System)
 
+  @callback call(String.t()) ::
+              {:ok, String.t()} | {:error, String.t(), non_neg_integer()}
+  @callback call(String.t(), [String.t()]) ::
+              {:ok, String.t()} | {:error, String.t(), non_neg_integer()}
   def call(command, args \\ []) do
     Logger.debug("Calling Dokku command #{inspect(command)}, with args #{inspect(args)}")
 

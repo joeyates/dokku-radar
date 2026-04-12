@@ -1,7 +1,7 @@
 defmodule DokkuRadar.ServicePlugins do
   @callback list() :: {:ok, [String.t()]} | {:error, non_neg_integer(), term()}
 
-  alias DokkuRadar.DokkuCli
+  @dokku_cli Application.compile_env(:dokku_radar, :"DokkuRadar.DokkuCli", DokkuRadar.DokkuCli)
 
   require Logger
 
@@ -18,7 +18,7 @@ defmodule DokkuRadar.ServicePlugins do
   )
 
   def list() do
-    case DokkuCli.call("plugin:list") do
+    case @dokku_cli.call("plugin:list") do
       {:ok, output} ->
         types = parse_plugin_list(output)
         Logger.info("Fetched Dokku service plugins", count: length(types))

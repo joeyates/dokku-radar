@@ -1,12 +1,12 @@
 defmodule DokkuRadar.ServicePlugin do
   @callback services(String.t()) :: {:ok, [String.t()]} | {:error, non_neg_integer(), term()}
 
-  alias DokkuRadar.DokkuCli
+  @dokku_cli Application.compile_env(:dokku_radar, :"DokkuRadar.DokkuCli", DokkuRadar.DokkuCli)
 
   require Logger
 
   def services(plugin) do
-    case DokkuCli.call("#{plugin}:list") do
+    case @dokku_cli.call("#{plugin}:list") do
       {:ok, output} ->
         services = parse_services(output)
         {:ok, services}
