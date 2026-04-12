@@ -161,3 +161,19 @@ Replace the `FilesystemReader.cert_expiry/2` implementation that reads TLS certi
 - Return `{:ok, %DateTime{}}` on success, `{:error, :no_cert}` if the app is not present in the list, and `{:error, reason}` on CLI failure.
 - Remove the filesystem cert-reading logic from `DokkuRadar.FilesystemReader.cert_expiry/2` and update its `@callback` to delegate to `DokkuRadar.Letsencrypt`.
 - Add tests for `DokkuRadar.Letsencrypt`; add a fixture string for `letsencrypt:list` output in `test/support/`.
+
+# Replace runtime dependency injection with `Application.compile_env`
+
+Status: [ ]
+
+## Description
+
+Two modules still inject their dependencies at runtime via keyword opts or Plug conn private fields, rather than via `Application.compile_env` module attributes as in `DokkuRadar.ServiceCache`. Replace these ad-hoc patterns with consistent compile-time configuration.
+
+## Technical Specifics
+
+- In `lib/dokku_radar/collector.ex`, replace the three `Keyword.get(opts, :docker_client/filesystem_reader/service_cache, ...)` calls with `@docker_client`, `@filesystem_reader`, and `@service_cache` module attributes backed by `Application.compile_env/3`.
+- In `lib/dokku_radar/router.ex`, replace `conn.private[:collector] || DokkuRadar.Collector` and the `init/1`/`call/2` override with a `@collector Application.compile_env(...)` module attribute.
+- In `config/test.exs`, add the four missing mock entries: `"DokkuRadar.DockerClient": DokkuRadar.DockerClient.Mock`, `"DokkuRadar.FilesystemReader": DokkuRadar.FilesystemReader.Mock`, `"DokkuRadar.ServiceCache": DokkuRadar.ServiceCache.Mock`, and `"DokkuRadar.Collector": DokkuRadar.Collector.Mock`.
+- In `test/dokku_radar/collector_test.exs`, remove the `@opts` keyword list and update all `Collector.collect(@opts)` calls to `Collector.collect()`.
+- In `test/dokku_radar/router_test.exs`, remove the `collector:` argument from `Router.init/1` and simplify accordingly.
