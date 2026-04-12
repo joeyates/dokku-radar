@@ -10,17 +10,17 @@ Replace the `FilesystemReader.cert_expiry/2` filesystem-based implementation (PE
 
 ## Tasks
 
-- [ ] Create `lib/dokku_radar/letsencrypt.ex` with `DokkuRadar.Letsencrypt`:
+- [x] Create `lib/dokku_radar/letsencrypt.ex` with `DokkuRadar.Letsencrypt`:
   - `@callback cert_expiry(String.t()) :: {:ok, DateTime.t()} | {:error, term()}`
   - `cert_expiry/1` calls `DokkuCli.call("letsencrypt:list")`, skips header lines (starting with `----->` or `App name`), finds the row matching the app, and parses columns 2–3 as `"YYYY-MM-DD HH:MM:SS"` into a `DateTime`
   - Returns `{:error, :no_cert}` if the app is not in the list; `{:error, reason}` on CLI failure
-- [ ] Replace `FilesystemReader.cert_expiry/2` body to delegate to `DokkuRadar.Letsencrypt.cert_expiry/1` (dropping the `opts` that were filesystem-specific), removing all PEM/filesystem logic and the private `extract_expiry/1`, `asn1_time_to_datetime/1` helpers
-- [ ] Update the `@callback cert_expiry` in `FilesystemReader` to drop the `keyword()` opts argument: `cert_expiry(String.t()) :: {:ok, DateTime.t()} | {:error, term()}`
-- [ ] Add `Mox.defmock(DokkuRadar.Letsencrypt.Mock, for: DokkuRadar.Letsencrypt)` to `test/support/mocks.ex`
-- [ ] Create `test/dokku_radar/letsencrypt_test.exs` covering: known app present, app absent (`{:error, :no_cert}`), CLI failure, header lines correctly skipped
-- [ ] Remove the `cert_expiry` describe block from `test/dokku_radar/filesystem_reader_test.exs` (those tests are superseded)
-- [ ] Ask the user for feedback on the state of the implementation and carry out any requested corrections.
-- [ ] Mark the plan as "done".
+- [x] Replace `FilesystemReader.cert_expiry/2` body to delegate to `DokkuRadar.Letsencrypt.cert_expiry/1` (dropping the `opts` that were filesystem-specific), removing all PEM/filesystem logic and the private `extract_expiry/1`, `asn1_time_to_datetime/1` helpers
+- [x] Update the `@callback cert_expiry` in `FilesystemReader` to drop the `keyword()` opts argument: `cert_expiry(String.t()) :: {:ok, DateTime.t()} | {:error, term()}`
+- [x] Add `Mox.defmock(DokkuRadar.Letsencrypt.Mock, for: DokkuRadar.Letsencrypt)` to `test/support/mocks.ex`
+- [x] Create `test/dokku_radar/letsencrypt_test.exs` covering: known app present, app absent (`{:error, :no_cert}`), CLI failure, header lines correctly skipped
+- [x] Remove the `cert_expiry` describe block from `test/dokku_radar/filesystem_reader_test.exs` (those tests are superseded)
+- [x] Ask the user for feedback on the state of the implementation and carry out any requested corrections.
+- [x] Mark the plan as "done".
 
 ## Principal Files
 

@@ -104,9 +104,9 @@ defmodule DokkuRadar.Collector do
     end)
   end
 
-  defp fetch_all_cert_expiries(app_names, filesystem_reader, opts) do
+  defp fetch_all_cert_expiries(app_names, filesystem_reader, _opts) do
     Map.new(app_names, fn app ->
-      {app, filesystem_reader.cert_expiry(app, opts)}
+      {app, filesystem_reader.cert_expiry(app)}
     end)
   end
 
