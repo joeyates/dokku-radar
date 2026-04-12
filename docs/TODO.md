@@ -142,7 +142,7 @@ The `Dockerfile` currently lives in the repository root. Moving it to a dedicate
 
 # Use Dokku CLI to fetch cert expiry
 
-Status: [ ]
+Status: [x]
 
 ## Description
 
