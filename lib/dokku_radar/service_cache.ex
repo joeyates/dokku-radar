@@ -1,6 +1,4 @@
 defmodule DokkuRadar.ServiceCache do
-  @behaviour DokkuRadar.ServiceCache.Behaviour
-
   use GenServer
 
   require Logger
@@ -30,7 +28,7 @@ defmodule DokkuRadar.ServiceCache do
     GenServer.start_link(__MODULE__, opts, gen_server_opts)
   end
 
-  @impl DokkuRadar.ServiceCache.Behaviour
+  @callback service_links() :: {:ok, [map()]} | {:error, term()}
   def service_links(server \\ __MODULE__) do
     GenServer.call(server, :service_links)
   end
