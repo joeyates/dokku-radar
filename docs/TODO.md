@@ -139,3 +139,25 @@ The `Dockerfile` currently lives in the repository root. Moving it to a dedicate
 
 - Move `Dockerfile` to `container/Dockerfile`.
 - Update `.github/workflows/publish.yml`: in the "Build and push" step, add `file: container/Dockerfile` to the `docker/build-push-action` inputs (the `context: .` remains unchanged so build context paths inside the Dockerfile are unaffected).
+
+# Use Dokku CLI to fetch cert expiry
+
+Status: [ ]
+
+## Description
+
+Replace the `FilesystemReader.cert_expiry/2` implementation that reads TLS certificate files directly from the filesystem with a new `DokkuRadar.Letsencrypt` module that calls `dokku letsencrypt:list` via the Dokku CLI (SSH), parsing its tabular output.
+
+## Technical Specifics
+
+- Create `lib/dokku_radar/letsencrypt.ex` as `DokkuRadar.Letsencrypt`.
+- Add a `cert_expiry/2` function that calls `DokkuRadar.DokkuCli.run/1` with `["letsencrypt:list"]` and parses the output table.
+- The table has the form:
+  ```
+  -----> App name           Certificate Expiry        Time before expiry ...
+  myapp                     2026-06-30 11:12:59       ...
+  ```
+  Skip the header line(s) (those starting with `----->` or `App name`), split each data row on whitespace, and parse columns 2–3 (`"YYYY-MM-DD HH:MM:SS"`) into a `DateTime`.
+- Return `{:ok, %DateTime{}}` on success, `{:error, :no_cert}` if the app is not present in the list, and `{:error, reason}` on CLI failure.
+- Remove the filesystem cert-reading logic from `DokkuRadar.FilesystemReader.cert_expiry/2` and update its `@callback` to delegate to `DokkuRadar.Letsencrypt`.
+- Add tests for `DokkuRadar.Letsencrypt`; add a fixture string for `letsencrypt:list` output in `test/support/`.
