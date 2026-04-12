@@ -10,7 +10,7 @@ Replace the `FilesystemReader.cert_expiry/2` filesystem-based implementation (PE
 
 ## Tasks
 
-- [ ] Create `lib/dokku_radar/letsencrypt.ex` with `DokkuRadar.Letsencrypt`:
+- [x] Create `lib/dokku_radar/letsencrypt.ex` with `DokkuRadar.Letsencrypt`:
   - `@callback cert_expiry(String.t()) :: {:ok, DateTime.t()} | {:error, term()}`
   - `cert_expiry/1` calls `DokkuCli.call("letsencrypt:list")`, skips header lines (starting with `----->` or `App name`), finds the row matching the app, and parses columns 2–3 as `"YYYY-MM-DD HH:MM:SS"` into a `DateTime`
   - Returns `{:error, :no_cert}` if the app is not in the list; `{:error, reason}` on CLI failure
