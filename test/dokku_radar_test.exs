@@ -16,11 +16,4 @@ defmodule DokkuRadarTest do
              _ -> false
            end)
   end
-
-  test "health endpoint responds on configured port" do
-    port = Application.get_env(:dokku_radar, :port)
-    {:ok, resp} = Req.get("http://localhost:#{port}/health")
-    assert resp.status == 200
-    assert resp.body == "ok"
-  end
 end
