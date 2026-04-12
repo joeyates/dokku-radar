@@ -278,7 +278,7 @@ defmodule DokkuRadar.CollectorTest do
         {:ok, %{"web" => 1}}
       end)
 
-      expect(DokkuRadar.FilesystemReader.Mock, :cert_expiry, fn "my-app", _opts ->
+      expect(DokkuRadar.FilesystemReader.Mock, :cert_expiry, fn "my-app" ->
         {:error, :no_cert}
       end)
 
@@ -314,7 +314,7 @@ defmodule DokkuRadar.CollectorTest do
         {:ok, %{"web" => 1}}
       end)
 
-      expect(DokkuRadar.FilesystemReader.Mock, :cert_expiry, fn "my-app", _opts ->
+      expect(DokkuRadar.FilesystemReader.Mock, :cert_expiry, fn "my-app" ->
         {:error, :no_cert}
       end)
 
@@ -432,7 +432,7 @@ defmodule DokkuRadar.CollectorTest do
       scale_result
     end)
 
-    expect(DokkuRadar.FilesystemReader.Mock, :cert_expiry, fn "my-app", _opts ->
+    expect(DokkuRadar.FilesystemReader.Mock, :cert_expiry, fn "my-app" ->
       cert_expiry
     end)
 
@@ -481,7 +481,7 @@ defmodule DokkuRadar.CollectorTest do
 
       cert_result = Map.get(cert_expiries, app, {:error, :no_cert})
 
-      expect(DokkuRadar.FilesystemReader.Mock, :cert_expiry, fn ^app, _opts ->
+      expect(DokkuRadar.FilesystemReader.Mock, :cert_expiry, fn ^app ->
         cert_result
       end)
     end
