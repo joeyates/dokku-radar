@@ -7,7 +7,7 @@ defmodule DokkuRadar.RouterTest do
 
   setup :verify_on_exit!
 
-  @opts DokkuRadar.Router.init(collector: DokkuRadar.Collector.Mock)
+  @opts DokkuRadar.Router.init([])
 
   describe "GET /metrics" do
     test "returns 200 with prometheus text format" do
@@ -22,7 +22,7 @@ defmodule DokkuRadar.RouterTest do
         }
       ]
 
-      expect(DokkuRadar.Collector.Mock, :collect, fn _opts -> {:ok, metrics} end)
+      expect(DokkuRadar.Collector.Mock, :collect, fn -> {:ok, metrics} end)
 
       conn =
         :get
@@ -37,7 +37,7 @@ defmodule DokkuRadar.RouterTest do
     end
 
     test "returns 500 when collector fails" do
-      expect(DokkuRadar.Collector.Mock, :collect, fn _opts ->
+      expect(DokkuRadar.Collector.Mock, :collect, fn ->
         {:error, %Req.TransportError{reason: :econnrefused}}
       end)
 

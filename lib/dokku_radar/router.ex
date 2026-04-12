@@ -3,15 +3,15 @@ defmodule DokkuRadar.Router do
 
   require Logger
 
+  @collector Application.compile_env(:dokku_radar, :"DokkuRadar.Collector", DokkuRadar.Collector)
+
   plug(:match)
   plug(:dispatch)
 
   get "/metrics" do
     Logger.debug("#{__MODULE__}, get /metrics")
-    collector = conn.private[:collector] || DokkuRadar.Collector
-    Logger.debug("Using collector #{inspect(collector)}")
 
-    case collector.collect([]) do
+    case @collector.collect() do
       {:ok, metrics} ->
         body = DokkuRadar.PrometheusFormatter.format(metrics)
 
@@ -34,22 +34,5 @@ defmodule DokkuRadar.Router do
 
   match _ do
     send_resp(conn, 404, "not found")
-  end
-
-  def init(opts) do
-    opts
-  end
-
-  def call(conn, opts) do
-    collector = Keyword.get(opts, :collector)
-
-    conn =
-      if collector do
-        Plug.Conn.put_private(conn, :collector, collector)
-      else
-        conn
-      end
-
-    super(conn, opts)
   end
 end

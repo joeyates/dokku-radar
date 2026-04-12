@@ -10,13 +10,13 @@ branch: chore/replace-runtime-dependency-injection
 
 ## Tasks
 
-- [ ] In `lib/dokku_radar/collector.ex`, add `@docker_client`, `@filesystem_reader`, and `@service_cache` module attributes backed by `Application.compile_env/3`; replace the three `Keyword.get(opts, ...)` calls with those attributes; simplify `collect/1` to `collect/0`.
-- [ ] In `lib/dokku_radar/router.ex`, add `@collector Application.compile_env(...)` module attribute; replace `conn.private[:collector] || DokkuRadar.Collector` with `@collector`; delete the `init/1`/`call/2` overrides.
-- [ ] In `config/test.exs`, add the four missing mock entries: `"DokkuRadar.DockerClient"`, `"DokkuRadar.FilesystemReader"`, `"DokkuRadar.ServiceCache"`, and `"DokkuRadar.Collector"`.
-- [ ] In `test/dokku_radar/collector_test.exs`, remove `@opts`, update every `Collector.collect(@opts)` call to `Collector.collect()`, and fix the `collect` mock expectation to take no opts.
-- [ ] In `test/dokku_radar/router_test.exs`, remove the `collector:` argument from `Router.init/1`, simplify `@opts`, and update the `collect` mock expectation arity.
-- [ ] Ask the user for feedback on the state of the implementation and carry out any requested corrections.
-- [ ] Mark the plan as "done".
+- [x] In `lib/dokku_radar/collector.ex`, add `@docker_client`, `@filesystem_reader`, and `@service_cache` module attributes backed by `Application.compile_env/3`; replace the three `Keyword.get(opts, ...)` calls with those attributes; simplify `collect/1` to `collect/0`.
+- [x] In `lib/dokku_radar/router.ex`, add `@collector Application.compile_env(...)` module attribute; replace `conn.private[:collector] || DokkuRadar.Collector` with `@collector`; delete the `init/1`/`call/2` overrides.
+- [x] In `config/test.exs`, add the four missing mock entries: `"DokkuRadar.DockerClient"`, `"DokkuRadar.FilesystemReader"`, `"DokkuRadar.ServiceCache"`, and `"DokkuRadar.Collector"`.
+- [x] In `test/dokku_radar/collector_test.exs`, remove `@opts`, update every `Collector.collect(@opts)` call to `Collector.collect()`, and fix the `collect` mock expectation to take no opts.
+- [x] In `test/dokku_radar/router_test.exs`, remove the `collector:` argument from `Router.init/1`, simplify `@opts`, and update the `collect` mock expectation arity.
+- [x] Ask the user for feedback on the state of the implementation and carry out any requested corrections.
+- [x] Mark the plan as "done".
 
 ## Principal Files
 

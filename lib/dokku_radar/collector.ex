@@ -1,14 +1,30 @@
 defmodule DokkuRadar.Collector do
-  @callback collect(keyword()) :: {:ok, [map()]} | {:error, term()}
+  @callback collect() :: {:ok, [map()]} | {:error, term()}
 
   require Logger
 
-  def collect(opts \\ []) do
-    docker_client = Keyword.get(opts, :docker_client, DokkuRadar.DockerClient)
-    filesystem_reader = Keyword.get(opts, :filesystem_reader, DokkuRadar.FilesystemReader)
-    service_cache = Keyword.get(opts, :service_cache, DokkuRadar.ServiceCache)
-    docker_opts = Keyword.get(opts, :docker_opts, [])
-    filesystem_opts = Keyword.get(opts, :filesystem_opts, [])
+  @docker_client Application.compile_env(
+                   :dokku_radar,
+                   :"DokkuRadar.DockerClient",
+                   DokkuRadar.DockerClient
+                 )
+  @filesystem_reader Application.compile_env(
+                       :dokku_radar,
+                       :"DokkuRadar.FilesystemReader",
+                       DokkuRadar.FilesystemReader
+                     )
+  @service_cache Application.compile_env(
+                   :dokku_radar,
+                   :"DokkuRadar.ServiceCache",
+                   DokkuRadar.ServiceCache
+                 )
+
+  def collect() do
+    docker_client = @docker_client
+    filesystem_reader = @filesystem_reader
+    service_cache = @service_cache
+    docker_opts = []
+    filesystem_opts = []
 
     Logger.debug("Starting metrics collection")
 

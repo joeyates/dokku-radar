@@ -7,17 +7,11 @@ defmodule DokkuRadar.CollectorTest do
 
   setup :verify_on_exit!
 
-  @opts [
-    docker_client: DokkuRadar.DockerClient.Mock,
-    filesystem_reader: DokkuRadar.FilesystemReader.Mock,
-    service_cache: DokkuRadar.ServiceCache.Mock
-  ]
-
-  describe "collect/1" do
+  describe "collect/0" do
     test "returns all ten metrics for a single Dokku container" do
       setup_single_app_expectations()
 
-      assert {:ok, metrics} = Collector.collect(@opts)
+      assert {:ok, metrics} = Collector.collect()
 
       assert length(metrics) == 10
       assert find_metric(metrics, "dokku_app_processes_configured")
@@ -53,7 +47,7 @@ defmodule DokkuRadar.CollectorTest do
 
       setup_single_app_expectations(service_cache: false)
 
-      assert {:ok, metrics} = Collector.collect(@opts)
+      assert {:ok, metrics} = Collector.collect()
 
       sl = find_metric(metrics, "dokku_service_linked")
       assert sl.type == :gauge
@@ -86,7 +80,7 @@ defmodule DokkuRadar.CollectorTest do
 
       setup_single_app_expectations(service_cache: false)
 
-      assert {:ok, metrics} = Collector.collect(@opts)
+      assert {:ok, metrics} = Collector.collect()
 
       ss = find_metric(metrics, "dokku_service_status")
       assert ss.type == :gauge
@@ -102,7 +96,7 @@ defmodule DokkuRadar.CollectorTest do
     test "returns empty service metrics when cache has no services" do
       setup_single_app_expectations()
 
-      assert {:ok, metrics} = Collector.collect(@opts)
+      assert {:ok, metrics} = Collector.collect()
 
       sl = find_metric(metrics, "dokku_service_linked")
       assert sl.samples == []
@@ -118,7 +112,7 @@ defmodule DokkuRadar.CollectorTest do
 
       setup_single_app_expectations(service_cache: false)
 
-      assert {:ok, metrics} = Collector.collect(@opts)
+      assert {:ok, metrics} = Collector.collect()
 
       sl = find_metric(metrics, "dokku_service_linked")
       assert sl.samples == []
@@ -130,7 +124,7 @@ defmodule DokkuRadar.CollectorTest do
     test "populates processes_configured from scale file" do
       setup_single_app_expectations(scale: %{"web" => 2, "worker" => 1})
 
-      assert {:ok, metrics} = Collector.collect(@opts)
+      assert {:ok, metrics} = Collector.collect()
 
       pc = find_metric(metrics, "dokku_app_processes_configured")
       assert pc.type == :gauge
@@ -156,7 +150,7 @@ defmodule DokkuRadar.CollectorTest do
         cert_expiries: %{"my-app" => {:error, :no_cert}}
       )
 
-      assert {:ok, metrics} = Collector.collect(@opts)
+      assert {:ok, metrics} = Collector.collect()
 
       pr = find_metric(metrics, "dokku_app_processes_running")
       assert [%{labels: %{"app" => "my-app", "process_type" => "web"}, value: 2}] = pr.samples
@@ -165,7 +159,7 @@ defmodule DokkuRadar.CollectorTest do
     test "reports container state with labels" do
       setup_single_app_expectations()
 
-      assert {:ok, metrics} = Collector.collect(@opts)
+      assert {:ok, metrics} = Collector.collect()
 
       cs = find_metric(metrics, "dokku_container_state")
       assert [sample] = cs.samples
@@ -179,7 +173,7 @@ defmodule DokkuRadar.CollectorTest do
     test "reports container restart count from inspect" do
       setup_single_app_expectations(restart_count: 5)
 
-      assert {:ok, metrics} = Collector.collect(@opts)
+      assert {:ok, metrics} = Collector.collect()
 
       cr = find_metric(metrics, "dokku_container_restarts_total")
       assert [sample] = cr.samples
@@ -199,7 +193,7 @@ defmodule DokkuRadar.CollectorTest do
         cert_expiries: %{"my-app" => {:error, :no_cert}}
       )
 
-      assert {:ok, metrics} = Collector.collect(@opts)
+      assert {:ok, metrics} = Collector.collect()
 
       ld = find_metric(metrics, "dokku_app_last_deploy_timestamp")
       assert [%{labels: %{"app" => "my-app"}, value: 1_700_000_200}] = ld.samples
@@ -209,7 +203,7 @@ defmodule DokkuRadar.CollectorTest do
       expiry = ~U[2026-07-08 12:00:00Z]
       setup_single_app_expectations(cert_expiry: {:ok, expiry})
 
-      assert {:ok, metrics} = Collector.collect(@opts)
+      assert {:ok, metrics} = Collector.collect()
 
       se = find_metric(metrics, "dokku_ssl_cert_expiry_timestamp")
       assert [%{labels: %{"app" => "my-app"}, value: value}] = se.samples
@@ -219,7 +213,7 @@ defmodule DokkuRadar.CollectorTest do
     test "converts CPU nanoseconds to seconds" do
       setup_single_app_expectations(cpu_ns: 2_500_000_000)
 
-      assert {:ok, metrics} = Collector.collect(@opts)
+      assert {:ok, metrics} = Collector.collect()
 
       cu = find_metric(metrics, "dokku_app_cpu_usage_seconds_total")
       assert [%{value: 2.5}] = cu.samples
@@ -228,7 +222,7 @@ defmodule DokkuRadar.CollectorTest do
     test "reports memory usage in bytes" do
       setup_single_app_expectations(memory_bytes: 104_857_600)
 
-      assert {:ok, metrics} = Collector.collect(@opts)
+      assert {:ok, metrics} = Collector.collect()
 
       mu = find_metric(metrics, "dokku_app_memory_usage_bytes")
       assert [%{value: 104_857_600}] = mu.samples
@@ -252,7 +246,7 @@ defmodule DokkuRadar.CollectorTest do
         cert_expiries: %{"my-app" => {:error, :no_cert}}
       )
 
-      assert {:ok, metrics} = Collector.collect(@opts)
+      assert {:ok, metrics} = Collector.collect()
 
       cs = find_metric(metrics, "dokku_container_state")
       assert length(cs.samples) == 1
@@ -282,7 +276,7 @@ defmodule DokkuRadar.CollectorTest do
         {:error, :no_cert}
       end)
 
-      assert {:ok, metrics} = Collector.collect(@opts)
+      assert {:ok, metrics} = Collector.collect()
 
       cu = find_metric(metrics, "dokku_app_cpu_usage_seconds_total")
       assert cu.samples == []
@@ -318,7 +312,7 @@ defmodule DokkuRadar.CollectorTest do
         {:error, :no_cert}
       end)
 
-      assert {:ok, metrics} = Collector.collect(@opts)
+      assert {:ok, metrics} = Collector.collect()
 
       cr = find_metric(metrics, "dokku_container_restarts_total")
       assert cr.samples == []
@@ -327,7 +321,7 @@ defmodule DokkuRadar.CollectorTest do
     test "handles missing scale file" do
       setup_single_app_expectations(scale: {:error, :enoent})
 
-      assert {:ok, metrics} = Collector.collect(@opts)
+      assert {:ok, metrics} = Collector.collect()
 
       pc = find_metric(metrics, "dokku_app_processes_configured")
       assert pc.samples == []
@@ -336,7 +330,7 @@ defmodule DokkuRadar.CollectorTest do
     test "handles missing SSL cert" do
       setup_single_app_expectations(cert_expiry: {:error, :no_cert})
 
-      assert {:ok, metrics} = Collector.collect(@opts)
+      assert {:ok, metrics} = Collector.collect()
 
       se = find_metric(metrics, "dokku_ssl_cert_expiry_timestamp")
       assert se.samples == []
@@ -357,7 +351,7 @@ defmodule DokkuRadar.CollectorTest do
         cert_expiries: %{"my-app" => {:error, :no_cert}}
       )
 
-      assert {:ok, metrics} = Collector.collect(@opts)
+      assert {:ok, metrics} = Collector.collect()
 
       cs = find_metric(metrics, "dokku_container_state")
       assert [sample] = cs.samples
@@ -369,7 +363,7 @@ defmodule DokkuRadar.CollectorTest do
         {:error, %Req.TransportError{reason: :econnrefused}}
       end)
 
-      assert {:error, %Req.TransportError{reason: :econnrefused}} = Collector.collect(@opts)
+      assert {:error, %Req.TransportError{reason: :econnrefused}} = Collector.collect()
     end
   end
 
