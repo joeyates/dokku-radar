@@ -164,7 +164,7 @@ Replace the `FilesystemReader.cert_expiry/2` implementation that reads TLS certi
 
 # Replace runtime dependency injection with `Application.compile_env`
 
-Status: [ ]
+Status: [x]
 
 ## Description
 
