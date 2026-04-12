@@ -18,8 +18,8 @@ Move `@callback` declarations from separate `*.Behaviour` submodules into their 
 - [x] Move `@callback` declarations from `DokkuRadar.Collector.Behaviour` into `DokkuRadar.Collector`; remove `@behaviour` and `@impl true`; delete `lib/dokku_radar/collector/behaviour.ex`
 - [x] Delete `lib/dokku_radar/dokku_cli/behaviour.ex` (no `@callback`s added to `DokkuCli` yet)
 - [x] Update `test/support/mocks.ex`: change each `for: DokkuRadar.X.Behaviour` to `for: DokkuRadar.X`; remove the `DokkuRadar.DokkuCli.Mock` entry
-- [ ] Ask the user for feedback on the state of the implementation and carry out any requested corrections.
-- [ ] Mark the plan as "done".
+- [x] Ask the user for feedback on the state of the implementation and carry out any requested corrections.
+- [x] Mark the plan as "done".
 
 ## Principal Files
 
