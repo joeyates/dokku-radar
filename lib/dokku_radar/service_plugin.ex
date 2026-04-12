@@ -1,4 +1,6 @@
 defmodule DokkuRadar.ServicePlugin do
+  @callback services(String.t()) :: {:ok, [String.t()]} | {:error, non_neg_integer(), term()}
+
   alias DokkuRadar.DokkuCli
 
   require Logger

@@ -1,9 +1,8 @@
 defmodule DokkuRadar.Collector do
-  @behaviour DokkuRadar.Collector.Behaviour
+  @callback collect(keyword()) :: {:ok, [map()]} | {:error, term()}
 
   require Logger
 
-  @impl true
   def collect(opts \\ []) do
     docker_client = Keyword.get(opts, :docker_client, DokkuRadar.DockerClient)
     filesystem_reader = Keyword.get(opts, :filesystem_reader, DokkuRadar.FilesystemReader)

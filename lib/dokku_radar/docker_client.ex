@@ -1,11 +1,12 @@
 defmodule DokkuRadar.DockerClient do
-  @behaviour DokkuRadar.DockerClient.Behaviour
+  @callback list_containers(keyword()) :: {:ok, [map()]} | {:error, term()}
+  @callback container_stats(String.t(), keyword()) :: {:ok, map()} | {:error, term()}
+  @callback container_inspect(String.t(), keyword()) :: {:ok, map()} | {:error, term()}
 
   require Logger
 
   @socket_path "/var/run/docker.sock"
 
-  @impl true
   def list_containers(opts \\ []) do
     Logger.debug("Fetching container list from Docker")
 
@@ -28,7 +29,6 @@ defmodule DokkuRadar.DockerClient do
     end
   end
 
-  @impl true
   def container_stats(container_id, opts \\ []) do
     Logger.debug("Fetching container stats from Docker", container_id: container_id)
 
@@ -62,7 +62,6 @@ defmodule DokkuRadar.DockerClient do
     end
   end
 
-  @impl true
   def container_inspect(container_id, opts \\ []) do
     Logger.debug("Inspecting container via Docker", container_id: container_id)
 

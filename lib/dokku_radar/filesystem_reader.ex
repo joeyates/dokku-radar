@@ -1,12 +1,13 @@
 defmodule DokkuRadar.FilesystemReader do
-  @behaviour DokkuRadar.FilesystemReader.Behaviour
+  @callback app_scale(String.t(), keyword()) ::
+              {:ok, %{String.t() => non_neg_integer()}} | {:error, term()}
+  @callback cert_expiry(String.t(), keyword()) :: {:ok, DateTime.t()} | {:error, term()}
 
   require Logger
 
   @dokku_root "/home/dokku"
   @dokku_data "/var/lib/dokku/data"
 
-  @impl true
   def app_scale(app_name, opts \\ []) do
     data_dir = Keyword.get(opts, :data_dir, @dokku_data)
     scale_path = Path.join([data_dir, "ps", app_name, "scale"])
@@ -28,7 +29,6 @@ defmodule DokkuRadar.FilesystemReader do
     end
   end
 
-  @impl true
   def cert_expiry(app_name, opts \\ []) do
     dokku_root = Keyword.get(opts, :dokku_root, @dokku_root)
     tls_dir = Path.join([dokku_root, app_name, "tls"])
