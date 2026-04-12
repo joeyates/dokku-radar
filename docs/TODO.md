@@ -107,7 +107,7 @@ GenServer lifecycle events (cache refresh start/finish, intervals).
 
 # Merge behaviour modules into main modules
 
-Status: [ ]
+Status: [x]
 
 ## Description
 
