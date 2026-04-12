@@ -1,11 +1,10 @@
 defmodule DokkuRadar.Service do
-  @behaviour DokkuRadar.Service.Behaviour
+  @callback links(String.t(), String.t()) :: {:ok, [String.t()]} | {:error, term()}
 
   alias DokkuRadar.DokkuCli
 
   require Logger
 
-  @impl true
   def links(plugin, service) do
     case DokkuCli.call("#{plugin}:links", [service]) do
       {:ok, output} ->
