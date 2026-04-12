@@ -19,8 +19,8 @@ Replace the `FilesystemReader.cert_expiry/2` filesystem-based implementation (PE
 - [x] Add `Mox.defmock(DokkuRadar.Letsencrypt.Mock, for: DokkuRadar.Letsencrypt)` to `test/support/mocks.ex`
 - [x] Create `test/dokku_radar/letsencrypt_test.exs` covering: known app present, app absent (`{:error, :no_cert}`), CLI failure, header lines correctly skipped
 - [x] Remove the `cert_expiry` describe block from `test/dokku_radar/filesystem_reader_test.exs` (those tests are superseded)
-- [ ] Ask the user for feedback on the state of the implementation and carry out any requested corrections.
-- [ ] Mark the plan as "done".
+- [x] Ask the user for feedback on the state of the implementation and carry out any requested corrections.
+- [x] Mark the plan as "done".
 
 ## Principal Files
 
