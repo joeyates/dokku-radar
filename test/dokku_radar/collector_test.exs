@@ -33,12 +33,17 @@ defmodule DokkuRadar.CollectorTest do
     end
 
     test "builds dokku_service_linked metric from cached services" do
-      stub(DokkuRadar.ServiceCache.Mock, :get, fn ->
+      stub(DokkuRadar.ServiceCache.Mock, :service_links, fn ->
         {:ok,
          [
-           %{service_type: "postgres", name: "my-db", status: "running", links: ["my-app"]},
-           %{
-             service_type: "postgres",
+           %DokkuRadar.ServiceCache{
+             type: "postgres",
+             name: "my-db",
+             status: "running",
+             links: ["my-app"]
+           },
+           %DokkuRadar.ServiceCache{
+             type: "postgres",
              name: "shared-db",
              status: "running",
              links: ["app1", "app2"]
@@ -61,11 +66,21 @@ defmodule DokkuRadar.CollectorTest do
     end
 
     test "builds dokku_service_status metric from cached services" do
-      stub(DokkuRadar.ServiceCache.Mock, :get, fn ->
+      stub(DokkuRadar.ServiceCache.Mock, :service_links, fn ->
         {:ok,
          [
-           %{service_type: "postgres", name: "my-db", status: "running", links: ["my-app"]},
-           %{service_type: "redis", name: "cache", status: "stopped", links: ["my-app"]}
+           %DokkuRadar.ServiceCache{
+             type: "postgres",
+             name: "my-db",
+             status: "running",
+             links: ["my-app"]
+           },
+           %DokkuRadar.ServiceCache{
+             type: "redis",
+             name: "cache",
+             status: "stopped",
+             links: ["my-app"]
+           }
          ]}
       end)
 
@@ -97,7 +112,9 @@ defmodule DokkuRadar.CollectorTest do
     end
 
     test "returns empty service metrics when cache returns error" do
-      stub(DokkuRadar.ServiceCache.Mock, :get, fn -> {:error, {255, "Connection refused"}} end)
+      stub(DokkuRadar.ServiceCache.Mock, :service_links, fn ->
+        {:error, {255, "Connection refused"}}
+      end)
 
       setup_single_app_expectations(service_cache: false)
 
@@ -243,7 +260,7 @@ defmodule DokkuRadar.CollectorTest do
     end
 
     test "handles stats failure gracefully" do
-      stub(DokkuRadar.ServiceCache.Mock, :get, fn -> {:ok, []} end)
+      stub(DokkuRadar.ServiceCache.Mock, :service_links, fn -> {:ok, []} end)
 
       expect(DokkuRadar.DockerClient.Mock, :list_containers, fn _opts ->
         {:ok, [dokku_container("aaa111", "my-app", "web", 1, "running", 1_700_000_000)]}
@@ -279,7 +296,7 @@ defmodule DokkuRadar.CollectorTest do
     end
 
     test "handles inspect failure gracefully" do
-      stub(DokkuRadar.ServiceCache.Mock, :get, fn -> {:ok, []} end)
+      stub(DokkuRadar.ServiceCache.Mock, :service_links, fn -> {:ok, []} end)
 
       expect(DokkuRadar.DockerClient.Mock, :list_containers, fn _opts ->
         {:ok, [dokku_container("aaa111", "my-app", "web", 1, "running", 1_700_000_000)]}
@@ -420,7 +437,7 @@ defmodule DokkuRadar.CollectorTest do
     end)
 
     if setup_service_cache do
-      stub(DokkuRadar.ServiceCache.Mock, :get, fn -> {:ok, []} end)
+      stub(DokkuRadar.ServiceCache.Mock, :service_links, fn -> {:ok, []} end)
     end
   end
 
@@ -429,7 +446,7 @@ defmodule DokkuRadar.CollectorTest do
     scales = Keyword.get(opts, :scales, %{})
     cert_expiries = Keyword.get(opts, :cert_expiries, %{})
 
-    stub(DokkuRadar.ServiceCache.Mock, :get, fn -> {:ok, []} end)
+    stub(DokkuRadar.ServiceCache.Mock, :service_links, fn -> {:ok, []} end)
 
     expect(DokkuRadar.DockerClient.Mock, :list_containers, fn _opts ->
       {:ok, containers}
