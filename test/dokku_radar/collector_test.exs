@@ -138,14 +138,21 @@ defmodule DokkuRadar.CollectorTest do
     end
 
     test "counts running processes by app and process type" do
+      ps_entries = [
+        ps_entry("my-app", "web", 1, "running", "aaa11111111"),
+        ps_entry("my-app", "web", 2, "running", "bbb22222222"),
+        ps_entry("my-app", "web", 3, "exited", "ccc33333333")
+      ]
+
       containers = [
-        dokku_container("aaa111", "my-app", "web", 1, "running", 1_700_000_000),
-        dokku_container("bbb222", "my-app", "web", 2, "running", 1_700_000_000),
-        dokku_container("ccc333", "my-app", "web", 3, "exited", 1_700_000_000)
+        dokku_container("aaa11111111", "my-app", "web", 1, "running", 1_700_000_000),
+        dokku_container("bbb22222222", "my-app", "web", 2, "running", 1_700_000_000),
+        dokku_container("ccc33333333", "my-app", "web", 3, "exited", 1_700_000_000)
       ]
 
       setup_expectations(
         containers: containers,
+        ps_report: ps_entries,
         scales: %{"my-app" => {:ok, %{"web" => 3}}},
         cert_expiries: %{"my-app" => {:error, :no_cert}}
       )
@@ -165,8 +172,9 @@ defmodule DokkuRadar.CollectorTest do
       assert [sample] = cs.samples
       assert sample.labels["app"] == "my-app"
       assert sample.labels["state"] == "running"
-      assert sample.labels["container_name"] == "my-app.web.1"
-      assert sample.labels["container_id"] == String.slice("abc123def456", 0, 12)
+      assert sample.labels["process_type"] == "web"
+      assert sample.labels["process_index"] == "1"
+      assert sample.labels["container_id"] == "abc12345678"
       assert sample.value == 1
     end
 
@@ -229,8 +237,11 @@ defmodule DokkuRadar.CollectorTest do
     end
 
     test "filters out non-Dokku containers" do
+      # PsReport only returns Dokku processes, so non-Dokku containers are naturally excluded
+      ps_entries = [ps_entry("my-app", "web", 1, "running", "aaa11111111")]
+
       containers = [
-        dokku_container("aaa111", "my-app", "web", 1, "running", 1_700_000_000),
+        dokku_container("aaa11111111", "my-app", "web", 1, "running", 1_700_000_000),
         %{
           "Id" => "zzz999",
           "Names" => ["/random-container"],
@@ -242,6 +253,7 @@ defmodule DokkuRadar.CollectorTest do
 
       setup_expectations(
         containers: containers,
+        ps_report: ps_entries,
         scales: %{"my-app" => {:ok, %{"web" => 1}}},
         cert_expiries: %{"my-app" => {:error, :no_cert}}
       )
@@ -257,14 +269,14 @@ defmodule DokkuRadar.CollectorTest do
       stub(DokkuRadar.ServiceCache.Mock, :service_links, fn -> {:ok, []} end)
 
       expect(DokkuRadar.DockerClient.Mock, :list_containers, fn _opts ->
-        {:ok, [dokku_container("aaa111", "my-app", "web", 1, "running", 1_700_000_000)]}
+        {:ok, [dokku_container("aaa11111111", "my-app", "web", 1, "running", 1_700_000_000)]}
       end)
 
-      expect(DokkuRadar.DockerClient.Mock, :container_stats, fn "aaa111", _opts ->
+      expect(DokkuRadar.DockerClient.Mock, :container_stats, fn "aaa11111111", _opts ->
         {:error, :timeout}
       end)
 
-      expect(DokkuRadar.DockerClient.Mock, :container_inspect, fn "aaa111", _opts ->
+      expect(DokkuRadar.DockerClient.Mock, :container_inspect, fn "aaa11111111", _opts ->
         {:ok, %{"State" => %{"RestartCount" => 0}}}
       end)
 
@@ -274,6 +286,10 @@ defmodule DokkuRadar.CollectorTest do
 
       expect(DokkuRadar.Certs.Mock, :list, fn -> {:ok, %{}} end)
 
+      expect(DokkuRadar.PsReport.Mock, :list, fn ->
+        {:ok, [ps_entry("my-app", "web", 1, "running", "aaa11111111")]}
+      end)
+
       assert {:ok, metrics} = Collector.collect()
 
       cu = find_metric(metrics, "dokku_app_cpu_usage_seconds_total")
@@ -282,7 +298,7 @@ defmodule DokkuRadar.CollectorTest do
       mu = find_metric(metrics, "dokku_app_memory_usage_bytes")
       assert mu.samples == []
 
-      # Container state is still reported
+      # Container state is still reported (from PsReport)
       cs = find_metric(metrics, "dokku_container_state")
       assert length(cs.samples) == 1
     end
@@ -291,14 +307,14 @@ defmodule DokkuRadar.CollectorTest do
       stub(DokkuRadar.ServiceCache.Mock, :service_links, fn -> {:ok, []} end)
 
       expect(DokkuRadar.DockerClient.Mock, :list_containers, fn _opts ->
-        {:ok, [dokku_container("aaa111", "my-app", "web", 1, "running", 1_700_000_000)]}
+        {:ok, [dokku_container("aaa11111111", "my-app", "web", 1, "running", 1_700_000_000)]}
       end)
 
-      expect(DokkuRadar.DockerClient.Mock, :container_stats, fn "aaa111", _opts ->
+      expect(DokkuRadar.DockerClient.Mock, :container_stats, fn "aaa11111111", _opts ->
         {:ok, default_stats()}
       end)
 
-      expect(DokkuRadar.DockerClient.Mock, :container_inspect, fn "aaa111", _opts ->
+      expect(DokkuRadar.DockerClient.Mock, :container_inspect, fn "aaa11111111", _opts ->
         {:error, {404, %{"message" => "No such container"}}}
       end)
 
@@ -307,6 +323,10 @@ defmodule DokkuRadar.CollectorTest do
       end)
 
       expect(DokkuRadar.Certs.Mock, :list, fn -> {:ok, %{}} end)
+
+      expect(DokkuRadar.PsReport.Mock, :list, fn ->
+        {:ok, [ps_entry("my-app", "web", 1, "running", "aaa11111111")]}
+      end)
 
       assert {:ok, metrics} = Collector.collect()
 
@@ -330,28 +350,6 @@ defmodule DokkuRadar.CollectorTest do
 
       se = find_metric(metrics, "dokku_ssl_cert_expiry_timestamp")
       assert se.samples == []
-    end
-
-    test "handles containers with nil Names" do
-      container = %{
-        "Id" => "xyz789abc012",
-        "Names" => nil,
-        "State" => "running",
-        "Created" => 1_700_000_000,
-        "Labels" => %{"com.dokku.app-name" => "my-app"}
-      }
-
-      setup_expectations(
-        containers: [container],
-        scales: %{"my-app" => {:ok, %{"web" => 1}}},
-        cert_expiries: %{"my-app" => {:error, :no_cert}}
-      )
-
-      assert {:ok, metrics} = Collector.collect()
-
-      cs = find_metric(metrics, "dokku_container_state")
-      assert [sample] = cs.samples
-      assert sample.labels["container_name"] == "xyz789abc012"
     end
 
     test "returns error when list_containers fails" do
@@ -391,8 +389,13 @@ defmodule DokkuRadar.CollectorTest do
     }
   end
 
+  defp ps_entry(app, process_type, process_index, state, cid) do
+    %{app: app, process_type: process_type, process_index: process_index, state: state, cid: cid}
+  end
+
   defp setup_single_app_expectations(overrides \\ []) do
     id = "abc123def456"
+    cid = "abc12345678"
     scale = Keyword.get(overrides, :scale, %{"web" => 1})
     restart_count = Keyword.get(overrides, :restart_count, 0)
     cpu_ns = Keyword.get(overrides, :cpu_ns, 5_000_000_000)
@@ -429,6 +432,10 @@ defmodule DokkuRadar.CollectorTest do
       end
 
     expect(DokkuRadar.Certs.Mock, :list, fn -> certs_list_result end)
+
+    expect(DokkuRadar.PsReport.Mock, :list, fn ->
+      {:ok, [ps_entry("my-app", "web", 1, "running", cid)]}
+    end)
 
     if setup_service_cache do
       stub(DokkuRadar.ServiceCache.Mock, :service_links, fn -> {:ok, []} end)
@@ -476,5 +483,20 @@ defmodule DokkuRadar.CollectorTest do
 
     certs_map = for {app, {:ok, dt}} <- cert_expiries, into: %{}, do: {app, dt}
     expect(DokkuRadar.Certs.Mock, :list, fn -> {:ok, certs_map} end)
+
+    ps_report_entries =
+      Keyword.get_lazy(opts, :ps_report, fn ->
+        Enum.flat_map(dokku_containers, fn cont ->
+          app = cont["Labels"]["com.dokku.app-name"]
+          name = hd(cont["Names"] || [""])
+          name = String.trim_leading(name, "/")
+          parts = String.split(name, ".")
+          type = Enum.at(parts, 1, "web")
+          index = parts |> List.last("1") |> String.to_integer()
+          [ps_entry(app, type, index, cont["State"], cont["Id"])]
+        end)
+      end)
+
+    expect(DokkuRadar.PsReport.Mock, :list, fn -> {:ok, ps_report_entries} end)
   end
 end

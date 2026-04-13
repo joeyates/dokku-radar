@@ -18,6 +18,11 @@ defmodule DokkuRadar.Collector do
                   :"DokkuRadar.Certs",
                   DokkuRadar.Certs
                 )
+  @ps_report Application.compile_env(
+               :dokku_radar,
+               :"DokkuRadar.PsReport",
+               DokkuRadar.PsReport
+             )
   @service_cache Application.compile_env(
                    :dokku_radar,
                    :"DokkuRadar.ServiceCache",
@@ -28,6 +33,7 @@ defmodule DokkuRadar.Collector do
     docker_client = @docker_client
     filesystem_reader = @filesystem_reader
     certs_client = @certs_client
+    ps_report_client = @ps_report
     service_cache = @service_cache
     docker_opts = []
     filesystem_opts = []
@@ -56,12 +62,13 @@ defmodule DokkuRadar.Collector do
         inspects_by_id = fetch_all_inspects(dokku_containers, docker_client, docker_opts)
         scales_by_app = fetch_all_scales(app_names, filesystem_reader, filesystem_opts)
         expiries_by_app = fetch_cert_expiries(certs_client)
+        ps_entries = fetch_ps_entries(ps_report_client)
         cached_services = fetch_cached_services(service_cache)
 
         metrics = [
           processes_configured_metric(scales_by_app),
-          processes_running_metric(dokku_containers),
-          container_state_metric(dokku_containers),
+          processes_running_metric(ps_entries),
+          container_state_metric(ps_entries),
           container_restarts_metric(dokku_containers, inspects_by_id),
           last_deploy_metric(dokku_containers),
           ssl_cert_expiry_metric(expiries_by_app),
@@ -96,16 +103,6 @@ defmodule DokkuRadar.Collector do
     String.slice(container["Id"], 0, 12)
   end
 
-  defp process_type(container) do
-    name = container_name(container)
-    app = app_name(container)
-
-    name
-    |> String.replace_prefix(app <> ".", "")
-    |> String.split(".")
-    |> List.first()
-  end
-
   defp fetch_all_stats(containers, docker_client, opts) do
     Map.new(containers, fn container ->
       id = container["Id"]
@@ -133,6 +130,13 @@ defmodule DokkuRadar.Collector do
     end
   end
 
+  defp fetch_ps_entries(ps_report_client) do
+    case ps_report_client.list() do
+      {:ok, entries} -> entries
+      {:error, _} -> []
+    end
+  end
+
   defp processes_configured_metric(scales_by_app) do
     samples =
       Enum.flat_map(scales_by_app, fn
@@ -153,13 +157,13 @@ defmodule DokkuRadar.Collector do
     }
   end
 
-  defp processes_running_metric(dokku_containers) do
+  defp processes_running_metric(ps_entries) do
     samples =
-      dokku_containers
-      |> Enum.filter(&(&1["State"] == "running"))
-      |> Enum.group_by(fn container -> {app_name(container), process_type(container)} end)
-      |> Enum.map(fn {{app, pt}, containers} ->
-        %{labels: %{"app" => app, "process_type" => pt}, value: length(containers)}
+      ps_entries
+      |> Enum.filter(&(&1.state == "running"))
+      |> Enum.group_by(fn entry -> {entry.app, entry.process_type} end)
+      |> Enum.map(fn {{app, pt}, entries} ->
+        %{labels: %{"app" => app, "process_type" => pt}, value: length(entries)}
       end)
 
     %{
@@ -170,15 +174,16 @@ defmodule DokkuRadar.Collector do
     }
   end
 
-  defp container_state_metric(dokku_containers) do
+  defp container_state_metric(ps_entries) do
     samples =
-      Enum.map(dokku_containers, fn cont ->
+      Enum.map(ps_entries, fn entry ->
         %{
           labels: %{
-            "app" => app_name(cont),
-            "container_id" => short_id(cont),
-            "container_name" => container_name(cont),
-            "state" => cont["State"]
+            "app" => entry.app,
+            "container_id" => entry.cid,
+            "process_type" => entry.process_type,
+            "process_index" => to_string(entry.process_index),
+            "state" => entry.state
           },
           value: 1
         }
