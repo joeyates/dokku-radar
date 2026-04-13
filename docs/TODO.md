@@ -180,7 +180,7 @@ Two modules still inject their dependencies at runtime via keyword opts or Plug 
 
 # Use Dokku CLI Instead of Filesystem/Docker
 
-Status: [ ]
+Status: [x]
 
 ## Description
 
