@@ -188,7 +188,7 @@ Refactor metric collection to use Dokku CLI commands (via SSH) instead of readin
 
 # Introduce `DokkuRadar.Services` namespace
 
-Status: [ ]
+Status: [x]
 
 ## Description
 
