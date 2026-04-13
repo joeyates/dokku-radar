@@ -185,3 +185,35 @@ Status: [x]
 ## Description
 
 Refactor metric collection to use Dokku CLI commands (via SSH) instead of reading the filesystem or Docker API directly, where equivalent data is available. This covers process scale and running counts, last deploy timestamps, SSL cert expiry (for non-Let's Encrypt certs), and service status.
+
+# Introduce `DokkuRadar.Services` namespace
+
+Status: [ ]
+
+## Description
+
+Move the existing `ServiceCache` and its companion modules into a `DokkuRadar.Services` namespace. Create a new `DokkuRadar.Services` front-end module that exposes the API consumed by `Collector`, establishing the namespace pattern to be repeated for all metrics domains.
+
+## Technical Specifics
+
+- Rename `DokkuRadar.ServiceCache` → `DokkuRadar.Services.Cache`; move file to `lib/dokku_radar/services/cache.ex`.
+- Rename `DokkuRadar.Service` → `DokkuRadar.Services.Service`; move file to `lib/dokku_radar/services/service.ex`.
+- Rename `DokkuRadar.ServicePlugin` → `DokkuRadar.Services.ServicePlugin`; move file to `lib/dokku_radar/services/service_plugin.ex`.
+- Rename `DokkuRadar.ServicePlugins` → `DokkuRadar.Services.ServicePlugins`; move file to `lib/dokku_radar/services/service_plugins.ex`.
+- Create `lib/dokku_radar/services.ex` as `DokkuRadar.Services` — a thin front-end that delegates to `DokkuRadar.Services.Cache` and is the only `Services`-related entry point for `DokkuRadar.Collector`.
+- Update all call sites (`Collector`, `Application`, `config/test.exs`, mocks) to use the new names.
+
+# Apply namespace + cache pattern to `Git`, `Certs`, and `Ps` domains
+
+Status: [ ]
+
+## Description
+
+Following the pattern established by "Introduce `DokkuRadar.Services` namespace", reorganise the remaining metrics domains into namespaces. Each domain gets a `Cache` GenServer that owns Dokku CLI calls, pure parser sub-modules, and a front-end module for `Collector`. After this work, no module outside a `*.Cache` GenServer should call `DokkuRadar.DokkuCli` directly.
+
+## Technical Specifics
+
+- `Git` domain: `DokkuRadar.GitReport` → `DokkuRadar.Git.Report` (pure parser); new `DokkuRadar.Git.Cache` GenServer; new `DokkuRadar.Git` front-end.
+- `Certs` domain: `DokkuRadar.Certs` → `DokkuRadar.Certs.Report` (pure parser); new `DokkuRadar.Certs.Cache` GenServer; new `DokkuRadar.Certs` front-end.
+- `Ps` domain: `DokkuRadar.PsScale` → `DokkuRadar.Ps.Scale` and `DokkuRadar.PsReport` → `DokkuRadar.Ps.Report` (pure parsers); new `DokkuRadar.Ps.Cache` GenServer; new `DokkuRadar.Ps` front-end.
+- Update `Collector`, `Application`, `config/test.exs`, and mocks for all renamed modules.
