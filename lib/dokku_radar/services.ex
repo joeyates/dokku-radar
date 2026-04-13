@@ -7,7 +7,7 @@ defmodule DokkuRadar.Services do
            DokkuRadar.Services.Cache
          )
 
-  def service_links do
+  def service_links() do
     @cache.service_links()
   end
 end
