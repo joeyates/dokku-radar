@@ -13,6 +13,11 @@ defmodule DokkuRadar.Collector do
                        :"DokkuRadar.FilesystemReader",
                        DokkuRadar.FilesystemReader
                      )
+  @certs_client Application.compile_env(
+                  :dokku_radar,
+                  :"DokkuRadar.Certs",
+                  DokkuRadar.Certs
+                )
   @service_cache Application.compile_env(
                    :dokku_radar,
                    :"DokkuRadar.ServiceCache",
@@ -22,6 +27,7 @@ defmodule DokkuRadar.Collector do
   def collect() do
     docker_client = @docker_client
     filesystem_reader = @filesystem_reader
+    certs_client = @certs_client
     service_cache = @service_cache
     docker_opts = []
     filesystem_opts = []
@@ -49,7 +55,7 @@ defmodule DokkuRadar.Collector do
         stats_by_id = fetch_all_stats(dokku_containers, docker_client, docker_opts)
         inspects_by_id = fetch_all_inspects(dokku_containers, docker_client, docker_opts)
         scales_by_app = fetch_all_scales(app_names, filesystem_reader, filesystem_opts)
-        expiries_by_app = fetch_all_cert_expiries(app_names, filesystem_reader, filesystem_opts)
+        expiries_by_app = fetch_cert_expiries(certs_client)
         cached_services = fetch_cached_services(service_cache)
 
         metrics = [
@@ -120,10 +126,11 @@ defmodule DokkuRadar.Collector do
     end)
   end
 
-  defp fetch_all_cert_expiries(app_names, filesystem_reader, _opts) do
-    Map.new(app_names, fn app ->
-      {app, filesystem_reader.cert_expiry(app)}
-    end)
+  defp fetch_cert_expiries(certs_client) do
+    case certs_client.list() do
+      {:ok, expiries} -> expiries
+      {:error, _} -> %{}
+    end
   end
 
   defp processes_configured_metric(scales_by_app) do
@@ -233,12 +240,8 @@ defmodule DokkuRadar.Collector do
 
   defp ssl_cert_expiry_metric(expiries_by_app) do
     samples =
-      Enum.flat_map(expiries_by_app, fn
-        {app, {:ok, expiry}} ->
-          [%{labels: %{"app" => app}, value: DateTime.to_unix(expiry)}]
-
-        {_app, {:error, _}} ->
-          []
+      Enum.map(expiries_by_app, fn {app, expiry} ->
+        %{labels: %{"app" => app}, value: DateTime.to_unix(expiry)}
       end)
 
     %{
