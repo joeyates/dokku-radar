@@ -220,7 +220,7 @@ Following the pattern established by "Introduce `DokkuRadar.Services` namespace"
 
 # Extract `DokkuRadar.DokkuCli.Cache` shared GenServer macro
 
-Status: [ ]
+Status: [x]
 
 ## Description
 
