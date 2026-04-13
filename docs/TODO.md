@@ -217,3 +217,20 @@ Following the pattern established by "Introduce `DokkuRadar.Services` namespace"
 - `Certs` domain: `DokkuRadar.Certs` → `DokkuRadar.Certs.Report` (pure parser); new `DokkuRadar.Certs.Cache` GenServer; new `DokkuRadar.Certs` front-end.
 - `Ps` domain: `DokkuRadar.PsScale` → `DokkuRadar.Ps.Scale` and `DokkuRadar.PsReport` → `DokkuRadar.Ps.Report` (pure parsers); new `DokkuRadar.Ps.Cache` GenServer; new `DokkuRadar.Ps` front-end.
 - Update `Collector`, `Application`, `config/test.exs`, and mocks for all renamed modules.
+
+# Extract `DokkuRadar.DokkuCli.Cache` shared GenServer macro
+
+Status: [ ]
+
+## Description
+
+Extract the shared GenServer boilerplate from `Certs.Cache`, `Git.Cache`, `Ps.Cache`, and `Services.Cache` into a `DokkuRadar.DokkuCli.Cache` macro (`use DokkuRadar.DokkuCli.Cache`), leaving only domain-specific logic in each module. Also fixes three bugs in `Services.Cache` uncovered during the refactor.
+
+## Technical Specifics
+
+- Create `lib/dokku_radar/dokku_cli/cache.ex` implementing `__using__/1` with shared `start_link/1`, `status/1`, `refresh/1`, GenServer callbacks, and helpers (`initiate_load/1`, `demonitor/1`, `maybe_enqueue_refresh/1`). Mark `handle_info/2` and `handle_call/3` as `defoverridable`.
+- Unified state shape: `%{data: nil, refresh_interval: integer() | nil, update_task: Task.t() | nil, error: term() | nil}`. `:status` returns `:ready` when `data` is non-nil.
+- Each module implements `@callback load() :: {:update, term()} | {:error, term()}` and retains only domain-specific `handle_call` clauses, falling through to `super` for `:status`.
+- Unify `data` field names: `Certs.Cache` (expiries map), `Git.Cache` (timestamps map), `Ps.Cache` (`%{entries:, scales:}`), `Services.Cache` (`%{plugins:, services:, service_links:}`).
+- Bug fixes in `Services.Cache`: (1) call `maybe_enqueue_refresh` after `:update`; (2) fix kill-and-restart so `update_task` is cleared and `initiate_load` is called immediately; (3) change `load/0` to return `{:update, %{plugins:, services:, service_links:}}`.
+- See `refactor.md` for full per-module skeletons.
