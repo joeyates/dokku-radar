@@ -177,3 +177,11 @@ Two modules still inject their dependencies at runtime via keyword opts or Plug 
 - In `config/test.exs`, add the four missing mock entries: `"DokkuRadar.DockerClient": DokkuRadar.DockerClient.Mock`, `"DokkuRadar.FilesystemReader": DokkuRadar.FilesystemReader.Mock`, `"DokkuRadar.ServiceCache": DokkuRadar.ServiceCache.Mock`, and `"DokkuRadar.Collector": DokkuRadar.Collector.Mock`.
 - In `test/dokku_radar/collector_test.exs`, remove the `@opts` keyword list and update all `Collector.collect(@opts)` calls to `Collector.collect()`.
 - In `test/dokku_radar/router_test.exs`, remove the `collector:` argument from `Router.init/1` and simplify accordingly.
+
+# Use Dokku CLI Instead of Filesystem/Docker
+
+Status: [ ]
+
+## Description
+
+Refactor metric collection to use Dokku CLI commands (via SSH) instead of reading the filesystem or Docker API directly, where equivalent data is available. This covers process scale and running counts, last deploy timestamps, SSL cert expiry (for non-Let's Encrypt certs), and service status.
