@@ -7,6 +7,8 @@ config app_name, port: 9876
 config app_name,
   System: System.Mock,
   "DokkuRadar.DockerClient": DokkuRadar.DockerClient.Mock,
+  "DokkuRadar.Certs": DokkuRadar.Certs.Mock,
+  "DokkuRadar.PsReport": DokkuRadar.PsReport.Mock,
   "DokkuRadar.FilesystemReader": DokkuRadar.FilesystemReader.Mock,
   "DokkuRadar.ServiceCache": DokkuRadar.ServiceCache.Mock,
   "DokkuRadar.Collector": DokkuRadar.Collector.Mock,
