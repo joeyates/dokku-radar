@@ -1,5 +1,9 @@
 # Agent Instructions
 
+See also:
+
+* ARCHITECTURE.md
+
 ## Skills
 
 - `mix test` — run the test suite
