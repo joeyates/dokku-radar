@@ -50,7 +50,7 @@ web:  1
 
 ## Tasks
 
-- [ ] Create `DokkuRadar.Certs` module: calls `certs:report` once, parses `Ssl expires at:` (format `Jul  1 08:39:08 2026 GMT`) per app into a `%{app => DateTime.t()}` map; add `@callback list() :: {:ok, %{String.t() => DateTime.t()}} | {:error, term()}`.
+- [x] Create `DokkuRadar.Certs` module: calls `certs:report` once, parses `Ssl expires at:` (format `Jul  1 08:39:08 2026 GMT`) per app into a `%{app => DateTime.t()}` map; add `@callback list() :: {:ok, %{String.t() => DateTime.t()}} | {:error, term()}`.
 - [ ] Update `DokkuRadar.Collector`: add `@certs_client` compile-env attribute; replace `fetch_all_cert_expiries/3` (per-app loop) with a single `certs_client.list/0` call; update `ssl_cert_expiry_metric/1` accordingly.
 - [ ] Remove `cert_expiry/1` callback and implementation from `DokkuRadar.FilesystemReader`; delete `DokkuRadar.Letsencrypt` (superseded by `Certs`).
 - [ ] Create `DokkuRadar.PsReport` module: calls `ps:report` once, parses `=====> <app>` headers and `Status <type> <N>: <state> (CID: <cid>)` lines into a structure usable for both `processes_running` and `container_state` metrics; add `@callback list() :: {:ok, [map()]} | {:error, term()}`.
