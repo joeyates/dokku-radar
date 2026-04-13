@@ -19,10 +19,10 @@ defmodule DokkuRadar.Collector do
                DokkuRadar.PsReport
              )
   @ps_scale Application.compile_env(
-               :dokku_radar,
-               :"DokkuRadar.PsScale",
-               DokkuRadar.PsScale
-             )
+              :dokku_radar,
+              :"DokkuRadar.PsScale",
+              DokkuRadar.PsScale
+            )
   @git_report Application.compile_env(
                 :dokku_radar,
                 :"DokkuRadar.GitReport",
@@ -35,7 +35,6 @@ defmodule DokkuRadar.Collector do
                  )
 
   def collect() do
-    docker_client = @docker_client
     certs_client = @certs_client
     ps_report_client = @ps_report
     ps_scale_client = @ps_scale
@@ -45,29 +44,23 @@ defmodule DokkuRadar.Collector do
 
     Logger.debug("Starting metrics collection")
 
-    case docker_client.list_containers(docker_opts) do
+    case ps_report_client.list() do
       {:error, reason} ->
-        Logger.warning("Metrics collection failed: could not list containers",
+        Logger.warning("Metrics collection failed: could not fetch ps:report",
           reason: inspect(reason)
         )
 
         {:error, reason}
 
-      {:ok, containers} ->
-        dokku_containers = Enum.filter(containers, &dokku_container?/1)
-        app_names = dokku_containers |> Enum.map(&app_name/1) |> Enum.uniq()
+      {:ok, ps_entries} ->
+        app_names = ps_entries |> Enum.map(& &1.app) |> Enum.uniq()
 
-        Logger.info("Collecting metrics",
-          total_containers: length(containers),
-          dokku_containers: length(dokku_containers),
-          apps: length(app_names)
-        )
+        Logger.info("Collecting metrics", apps: length(app_names))
 
-        stats_by_id = fetch_all_stats(dokku_containers, docker_client, docker_opts)
-        inspects_by_id = fetch_all_inspects(dokku_containers, docker_client, docker_opts)
+        stats_by_id = fetch_all_stats(ps_entries, @docker_client, docker_opts)
+        inspects_by_id = fetch_all_inspects(ps_entries, @docker_client, docker_opts)
         scales_by_app = fetch_all_scales(app_names, ps_scale_client)
         expiries_by_app = fetch_cert_expiries(certs_client)
-        ps_entries = fetch_ps_entries(ps_report_client)
         git_reports_by_app = fetch_git_reports(app_names, git_report_client)
         cached_services = fetch_cached_services(service_cache)
 
@@ -75,11 +68,11 @@ defmodule DokkuRadar.Collector do
           processes_configured_metric(scales_by_app),
           processes_running_metric(ps_entries),
           container_state_metric(ps_entries),
-          container_restarts_metric(dokku_containers, inspects_by_id),
+          container_restarts_metric(ps_entries, inspects_by_id),
           last_deploy_metric(git_reports_by_app),
           ssl_cert_expiry_metric(expiries_by_app),
-          cpu_usage_metric(dokku_containers, stats_by_id),
-          memory_usage_metric(dokku_containers, stats_by_id),
+          cpu_usage_metric(ps_entries, stats_by_id),
+          memory_usage_metric(ps_entries, stats_by_id),
           service_linked_metric(cached_services),
           service_status_metric(cached_services)
         ]
@@ -90,36 +83,17 @@ defmodule DokkuRadar.Collector do
     end
   end
 
-  defp dokku_container?(container) do
-    container["Labels"]["com.dokku.app-name"] != nil
-  end
-
-  defp app_name(container) do
-    container["Labels"]["com.dokku.app-name"]
-  end
-
-  defp container_name(container) do
-    case container["Names"] do
-      [name | _] -> String.trim_leading(name, "/")
-      _ -> short_id(container)
-    end
-  end
-
-  defp short_id(container) do
-    String.slice(container["Id"], 0, 12)
-  end
-
-  defp fetch_all_stats(containers, docker_client, opts) do
-    Map.new(containers, fn container ->
-      id = container["Id"]
-      {id, docker_client.container_stats(id, opts)}
+  defp fetch_all_stats(ps_entries, docker_client, opts) do
+    Map.new(ps_entries, fn entry ->
+      cid = entry.cid
+      {cid, docker_client.container_stats(cid, opts)}
     end)
   end
 
-  defp fetch_all_inspects(containers, docker_client, opts) do
-    Map.new(containers, fn container ->
-      id = container["Id"]
-      {id, docker_client.container_inspect(id, opts)}
+  defp fetch_all_inspects(ps_entries, docker_client, opts) do
+    Map.new(ps_entries, fn entry ->
+      cid = entry.cid
+      {cid, docker_client.container_inspect(cid, opts)}
     end)
   end
 
@@ -133,13 +107,6 @@ defmodule DokkuRadar.Collector do
     case certs_client.list() do
       {:ok, expiries} -> expiries
       {:error, _} -> %{}
-    end
-  end
-
-  defp fetch_ps_entries(ps_report_client) do
-    case ps_report_client.list() do
-      {:ok, entries} -> entries
-      {:error, _} -> []
     end
   end
 
@@ -209,17 +176,18 @@ defmodule DokkuRadar.Collector do
     }
   end
 
-  defp container_restarts_metric(dokku_containers, inspects_by_id) do
+  defp container_restarts_metric(ps_entries, inspects_by_id) do
     samples =
-      Enum.flat_map(dokku_containers, fn cont ->
-        case inspects_by_id[cont["Id"]] do
+      Enum.flat_map(ps_entries, fn entry ->
+        case inspects_by_id[entry.cid] do
           {:ok, inspect_data} ->
             [
               %{
                 labels: %{
-                  "app" => app_name(cont),
-                  "container_id" => short_id(cont),
-                  "container_name" => container_name(cont)
+                  "app" => entry.app,
+                  "container_id" => entry.cid,
+                  "process_type" => entry.process_type,
+                  "process_index" => to_string(entry.process_index)
                 },
                 value: get_in(inspect_data, ["State", "RestartCount"]) || 0
               }
@@ -270,16 +238,16 @@ defmodule DokkuRadar.Collector do
     }
   end
 
-  defp cpu_usage_metric(dokku_containers, stats_by_id) do
+  defp cpu_usage_metric(ps_entries, stats_by_id) do
     samples =
-      Enum.flat_map(dokku_containers, fn cont ->
-        case stats_by_id[cont["Id"]] do
+      Enum.flat_map(ps_entries, fn entry ->
+        case stats_by_id[entry.cid] do
           {:ok, stats} ->
             total_ns = get_in(stats, ["cpu_stats", "cpu_usage", "total_usage"]) || 0
 
             [
               %{
-                labels: %{"app" => app_name(cont), "container_id" => short_id(cont)},
+                labels: %{"app" => entry.app, "container_id" => entry.cid},
                 value: total_ns / 1_000_000_000
               }
             ]
@@ -297,16 +265,16 @@ defmodule DokkuRadar.Collector do
     }
   end
 
-  defp memory_usage_metric(dokku_containers, stats_by_id) do
+  defp memory_usage_metric(ps_entries, stats_by_id) do
     samples =
-      Enum.flat_map(dokku_containers, fn cont ->
-        case stats_by_id[cont["Id"]] do
+      Enum.flat_map(ps_entries, fn entry ->
+        case stats_by_id[entry.cid] do
           {:ok, stats} ->
             usage = get_in(stats, ["memory_stats", "usage"]) || 0
 
             [
               %{
-                labels: %{"app" => app_name(cont), "container_id" => short_id(cont)},
+                labels: %{"app" => entry.app, "container_id" => entry.cid},
                 value: usage
               }
             ]

@@ -269,10 +269,6 @@ defmodule DokkuRadar.CollectorTest do
     test "handles stats failure gracefully" do
       stub(DokkuRadar.ServiceCache.Mock, :service_links, fn -> {:ok, []} end)
 
-      expect(DokkuRadar.DockerClient.Mock, :list_containers, fn _opts ->
-        {:ok, [dokku_container("aaa11111111", "my-app", "web", 1, "running", 1_700_000_000)]}
-      end)
-
       expect(DokkuRadar.DockerClient.Mock, :container_stats, fn "aaa11111111", _opts ->
         {:error, :timeout}
       end)
@@ -308,10 +304,6 @@ defmodule DokkuRadar.CollectorTest do
 
     test "handles inspect failure gracefully" do
       stub(DokkuRadar.ServiceCache.Mock, :service_links, fn -> {:ok, []} end)
-
-      expect(DokkuRadar.DockerClient.Mock, :list_containers, fn _opts ->
-        {:ok, [dokku_container("aaa11111111", "my-app", "web", 1, "running", 1_700_000_000)]}
-      end)
 
       expect(DokkuRadar.DockerClient.Mock, :container_stats, fn "aaa11111111", _opts ->
         {:ok, default_stats()}
@@ -357,12 +349,12 @@ defmodule DokkuRadar.CollectorTest do
       assert se.samples == []
     end
 
-    test "returns error when list_containers fails" do
-      expect(DokkuRadar.DockerClient.Mock, :list_containers, fn _opts ->
-        {:error, %Req.TransportError{reason: :econnrefused}}
+    test "returns error when ps_report fails" do
+      expect(DokkuRadar.PsReport.Mock, :list, fn ->
+        {:error, {1, "connection refused"}}
       end)
 
-      assert {:error, %Req.TransportError{reason: :econnrefused}} = Collector.collect()
+      assert {:error, {1, "connection refused"}} = Collector.collect()
     end
   end
 
@@ -399,7 +391,6 @@ defmodule DokkuRadar.CollectorTest do
   end
 
   defp setup_single_app_expectations(overrides \\ []) do
-    id = "abc123def456"
     cid = "abc12345678"
     scale = Keyword.get(overrides, :scale, %{"web" => 1})
     restart_count = Keyword.get(overrides, :restart_count, 0)
@@ -412,17 +403,11 @@ defmodule DokkuRadar.CollectorTest do
 
     scale_result = if is_map(scale), do: {:ok, scale}, else: scale
 
-    containers = [dokku_container(id, "my-app", "web", 1, "running", 1_700_000_000)]
-
-    expect(DokkuRadar.DockerClient.Mock, :list_containers, fn _opts ->
-      {:ok, containers}
-    end)
-
-    expect(DokkuRadar.DockerClient.Mock, :container_stats, fn ^id, _opts ->
+    expect(DokkuRadar.DockerClient.Mock, :container_stats, fn ^cid, _opts ->
       {:ok, default_stats(cpu_ns: cpu_ns, memory_bytes: memory_bytes)}
     end)
 
-    expect(DokkuRadar.DockerClient.Mock, :container_inspect, fn ^id, _opts ->
+    expect(DokkuRadar.DockerClient.Mock, :container_inspect, fn ^cid, _opts ->
       {:ok, %{"State" => %{"RestartCount" => restart_count}}}
     end)
 
@@ -450,35 +435,44 @@ defmodule DokkuRadar.CollectorTest do
   end
 
   defp setup_expectations(opts) do
-    containers = Keyword.fetch!(opts, :containers)
+    containers = Keyword.get(opts, :containers, [])
     scales = Keyword.get(opts, :scales, %{})
     cert_expiries = Keyword.get(opts, :cert_expiries, %{})
     git_reports = Keyword.get(opts, :git_reports, %{})
 
     stub(DokkuRadar.ServiceCache.Mock, :service_links, fn -> {:ok, []} end)
 
-    expect(DokkuRadar.DockerClient.Mock, :list_containers, fn _opts ->
-      {:ok, containers}
-    end)
-
     dokku_containers =
       Enum.filter(containers, &(&1["Labels"]["com.dokku.app-name"] != nil))
 
-    for cont <- dokku_containers do
-      id = cont["Id"]
+    ps_report_entries =
+      Keyword.get_lazy(opts, :ps_report, fn ->
+        Enum.flat_map(dokku_containers, fn cont ->
+          app = cont["Labels"]["com.dokku.app-name"]
+          name = hd(cont["Names"] || [""])
+          name = String.trim_leading(name, "/")
+          parts = String.split(name, ".")
+          type = Enum.at(parts, 1, "web")
+          index = parts |> List.last("1") |> String.to_integer()
+          [ps_entry(app, type, index, cont["State"], cont["Id"])]
+        end)
+      end)
 
-      expect(DokkuRadar.DockerClient.Mock, :container_stats, fn ^id, _opts ->
+    for entry <- ps_report_entries do
+      cid = entry.cid
+
+      expect(DokkuRadar.DockerClient.Mock, :container_stats, fn ^cid, _opts ->
         {:ok, default_stats()}
       end)
 
-      expect(DokkuRadar.DockerClient.Mock, :container_inspect, fn ^id, _opts ->
+      expect(DokkuRadar.DockerClient.Mock, :container_inspect, fn ^cid, _opts ->
         {:ok, %{"State" => %{"RestartCount" => 0}}}
       end)
     end
 
     app_names =
-      dokku_containers
-      |> Enum.map(& &1["Labels"]["com.dokku.app-name"])
+      ps_report_entries
+      |> Enum.map(& &1.app)
       |> Enum.uniq()
 
     for app <- app_names do
@@ -497,19 +491,6 @@ defmodule DokkuRadar.CollectorTest do
 
     certs_map = for {app, {:ok, dt}} <- cert_expiries, into: %{}, do: {app, dt}
     expect(DokkuRadar.Certs.Mock, :list, fn -> {:ok, certs_map} end)
-
-    ps_report_entries =
-      Keyword.get_lazy(opts, :ps_report, fn ->
-        Enum.flat_map(dokku_containers, fn cont ->
-          app = cont["Labels"]["com.dokku.app-name"]
-          name = hd(cont["Names"] || [""])
-          name = String.trim_leading(name, "/")
-          parts = String.split(name, ".")
-          type = Enum.at(parts, 1, "web")
-          index = parts |> List.last("1") |> String.to_integer()
-          [ps_entry(app, type, index, cont["State"], cont["Id"])]
-        end)
-      end)
 
     expect(DokkuRadar.PsReport.Mock, :list, fn -> {:ok, ps_report_entries} end)
   end
