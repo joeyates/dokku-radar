@@ -277,17 +277,19 @@ defmodule DokkuRadar.CollectorTest do
         {:ok, %{"State" => %{"RestartCount" => 0}}}
       end)
 
-      expect(DokkuRadar.PsScale.Mock, :scale, fn "my-app" ->
+      expect(DokkuRadar.Ps.Mock, :scale, fn "my-app" ->
         {:ok, %{"web" => 1}}
       end)
 
       expect(DokkuRadar.Certs.Mock, :list, fn -> {:ok, %{}} end)
 
-      expect(DokkuRadar.PsReport.Mock, :list, fn ->
+      expect(DokkuRadar.Ps.Mock, :list, fn ->
         {:ok, [ps_entry("my-app", "web", 1, "running", "aaa11111111")]}
       end)
 
-      expect(DokkuRadar.GitReport.Mock, :report, fn "my-app" -> {:ok, 1_700_000_000} end)
+      expect(DokkuRadar.Git.Mock, :last_deploy_timestamps, fn ->
+        {:ok, %{"my-app" => 1_700_000_000}}
+      end)
 
       assert {:ok, metrics} = Collector.collect()
 
@@ -313,17 +315,19 @@ defmodule DokkuRadar.CollectorTest do
         {:error, {404, %{"message" => "No such container"}}}
       end)
 
-      expect(DokkuRadar.PsScale.Mock, :scale, fn "my-app" ->
+      expect(DokkuRadar.Ps.Mock, :scale, fn "my-app" ->
         {:ok, %{"web" => 1}}
       end)
 
       expect(DokkuRadar.Certs.Mock, :list, fn -> {:ok, %{}} end)
 
-      expect(DokkuRadar.PsReport.Mock, :list, fn ->
+      expect(DokkuRadar.Ps.Mock, :list, fn ->
         {:ok, [ps_entry("my-app", "web", 1, "running", "aaa11111111")]}
       end)
 
-      expect(DokkuRadar.GitReport.Mock, :report, fn "my-app" -> {:ok, 1_700_000_000} end)
+      expect(DokkuRadar.Git.Mock, :last_deploy_timestamps, fn ->
+        {:ok, %{"my-app" => 1_700_000_000}}
+      end)
 
       assert {:ok, metrics} = Collector.collect()
 
@@ -350,7 +354,7 @@ defmodule DokkuRadar.CollectorTest do
     end
 
     test "returns error when ps_report fails" do
-      expect(DokkuRadar.PsReport.Mock, :list, fn ->
+      expect(DokkuRadar.Ps.Mock, :list, fn ->
         {:error, {1, "connection refused"}}
       end)
 
@@ -411,7 +415,7 @@ defmodule DokkuRadar.CollectorTest do
       {:ok, %{"State" => %{"RestartCount" => restart_count}}}
     end)
 
-    expect(DokkuRadar.PsScale.Mock, :scale, fn "my-app" ->
+    expect(DokkuRadar.Ps.Mock, :scale, fn "my-app" ->
       scale_result
     end)
 
@@ -423,11 +427,13 @@ defmodule DokkuRadar.CollectorTest do
 
     expect(DokkuRadar.Certs.Mock, :list, fn -> certs_list_result end)
 
-    expect(DokkuRadar.PsReport.Mock, :list, fn ->
+    expect(DokkuRadar.Ps.Mock, :list, fn ->
       {:ok, [ps_entry("my-app", "web", 1, "running", cid)]}
     end)
 
-    expect(DokkuRadar.GitReport.Mock, :report, fn "my-app" -> {:ok, 1_700_000_000} end)
+    expect(DokkuRadar.Git.Mock, :last_deploy_timestamps, fn ->
+      {:ok, %{"my-app" => 1_700_000_000}}
+    end)
 
     if setup_service_cache do
       stub(DokkuRadar.Services.Mock, :service_links, fn -> {:ok, []} end)
@@ -478,20 +484,21 @@ defmodule DokkuRadar.CollectorTest do
     for app <- app_names do
       scale_result = Map.get(scales, app, {:ok, %{"web" => 1}})
 
-      expect(DokkuRadar.PsScale.Mock, :scale, fn ^app ->
+      expect(DokkuRadar.Ps.Mock, :scale, fn ^app ->
         scale_result
       end)
-
-      git_result = Map.get(git_reports, app, {:ok, 1_700_000_000})
-
-      expect(DokkuRadar.GitReport.Mock, :report, fn ^app ->
-        git_result
-      end)
     end
+
+    timestamps_map =
+      for {app, {:ok, ts}} <- git_reports, into: %{}, do: {app, ts}
+
+    expect(DokkuRadar.Git.Mock, :last_deploy_timestamps, fn ->
+      {:ok, timestamps_map}
+    end)
 
     certs_map = for {app, {:ok, dt}} <- cert_expiries, into: %{}, do: {app, dt}
     expect(DokkuRadar.Certs.Mock, :list, fn -> {:ok, certs_map} end)
 
-    expect(DokkuRadar.PsReport.Mock, :list, fn -> {:ok, ps_report_entries} end)
+    expect(DokkuRadar.Ps.Mock, :list, fn -> {:ok, ps_report_entries} end)
   end
 end

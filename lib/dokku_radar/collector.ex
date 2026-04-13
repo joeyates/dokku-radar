@@ -13,20 +13,15 @@ defmodule DokkuRadar.Collector do
                   :"DokkuRadar.Certs",
                   DokkuRadar.Certs
                 )
-  @ps_report Application.compile_env(
+  @ps_client Application.compile_env(
                :dokku_radar,
-               :"DokkuRadar.PsReport",
-               DokkuRadar.PsReport
+               :"DokkuRadar.Ps",
+               DokkuRadar.Ps
              )
-  @ps_scale Application.compile_env(
-              :dokku_radar,
-              :"DokkuRadar.PsScale",
-              DokkuRadar.PsScale
-            )
-  @git_report Application.compile_env(
+  @git_client Application.compile_env(
                 :dokku_radar,
-                :"DokkuRadar.GitReport",
-                DokkuRadar.GitReport
+                :"DokkuRadar.Git",
+                DokkuRadar.Git
               )
   @service_client Application.compile_env(
                     :dokku_radar,
@@ -37,7 +32,7 @@ defmodule DokkuRadar.Collector do
   def collect() do
     Logger.debug("Starting metrics collection")
 
-    case @ps_report.list() do
+    case @ps_client.list() do
       {:error, reason} ->
         Logger.warning("Metrics collection failed: could not fetch ps:report",
           reason: inspect(reason)
@@ -54,7 +49,7 @@ defmodule DokkuRadar.Collector do
         inspects_by_id = fetch_all_inspects(ps_entries)
         scales_by_app = fetch_all_scales(app_names)
         expiries_by_app = fetch_cert_expiries()
-        git_reports_by_app = fetch_git_reports(app_names)
+        timestamps_by_app = fetch_git_timestamps()
         cached_services = fetch_services()
 
         metrics = [
@@ -62,7 +57,7 @@ defmodule DokkuRadar.Collector do
           processes_running_metric(ps_entries),
           container_state_metric(ps_entries),
           container_restarts_metric(ps_entries, inspects_by_id),
-          last_deploy_metric(git_reports_by_app),
+          last_deploy_metric(timestamps_by_app),
           ssl_cert_expiry_metric(expiries_by_app),
           cpu_usage_metric(ps_entries, stats_by_id),
           memory_usage_metric(ps_entries, stats_by_id),
@@ -92,7 +87,7 @@ defmodule DokkuRadar.Collector do
 
   defp fetch_all_scales(app_names) do
     Map.new(app_names, fn app ->
-      {app, @ps_scale.scale(app)}
+      {app, @ps_client.scale(app)}
     end)
   end
 
@@ -103,10 +98,11 @@ defmodule DokkuRadar.Collector do
     end
   end
 
-  defp fetch_git_reports(app_names) do
-    Map.new(app_names, fn app ->
-      {app, @git_report.report(app)}
-    end)
+  defp fetch_git_timestamps() do
+    case @git_client.last_deploy_timestamps() do
+      {:ok, timestamps} -> timestamps
+      {:error, _} -> %{}
+    end
   end
 
   defp processes_configured_metric(scales_by_app) do
@@ -199,14 +195,10 @@ defmodule DokkuRadar.Collector do
     }
   end
 
-  defp last_deploy_metric(git_reports_by_app) do
+  defp last_deploy_metric(timestamps_by_app) do
     samples =
-      Enum.flat_map(git_reports_by_app, fn
-        {app, {:ok, ts}} ->
-          [%{labels: %{"app" => app}, value: ts}]
-
-        {_app, {:error, _}} ->
-          []
+      Enum.map(timestamps_by_app, fn {app, ts} ->
+        %{labels: %{"app" => app}, value: ts}
       end)
 
     %{
