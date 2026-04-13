@@ -1,7 +1,6 @@
 defmodule DokkuRadar.FilesystemReader do
   @callback app_scale(String.t(), keyword()) ::
               {:ok, %{String.t() => non_neg_integer()}} | {:error, term()}
-  @callback cert_expiry(String.t()) :: {:ok, DateTime.t()} | {:error, term()}
 
   require Logger
 
@@ -26,10 +25,6 @@ defmodule DokkuRadar.FilesystemReader do
 
         {:error, reason}
     end
-  end
-
-  def cert_expiry(app_name) do
-    DokkuRadar.Letsencrypt.cert_expiry(app_name)
   end
 
   defp parse_scale(content) do

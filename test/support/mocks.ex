@@ -1,7 +1,7 @@
 Mox.defmock(DokkuRadar.DokkuCli.Mock, for: DokkuRadar.DokkuCli)
 Mox.defmock(DokkuRadar.DockerClient.Mock, for: DokkuRadar.DockerClient)
+Mox.defmock(DokkuRadar.Certs.Mock, for: DokkuRadar.Certs)
 Mox.defmock(DokkuRadar.FilesystemReader.Mock, for: DokkuRadar.FilesystemReader)
-Mox.defmock(DokkuRadar.Letsencrypt.Mock, for: DokkuRadar.Letsencrypt)
 Mox.defmock(DokkuRadar.Service.Mock, for: DokkuRadar.Service)
 Mox.defmock(DokkuRadar.ServicePlugin.Mock, for: DokkuRadar.ServicePlugin)
 Mox.defmock(DokkuRadar.ServicePlugins.Mock, for: DokkuRadar.ServicePlugins)
