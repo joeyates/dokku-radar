@@ -16,17 +16,17 @@ All call sites — `Collector`, `Application`, `config/test.exs`,
 
 ## Tasks
 
-- [ ] Rename `DokkuRadar.ServicePlugins` → `DokkuRadar.Services.ServicePlugins`; move to `lib/dokku_radar/services/service_plugins.ex`.
-- [ ] Rename `DokkuRadar.ServicePlugin` → `DokkuRadar.Services.ServicePlugin`; move to `lib/dokku_radar/services/service_plugin.ex`.
-- [ ] Rename `DokkuRadar.Service` → `DokkuRadar.Services.Service`; move to `lib/dokku_radar/services/service.ex`.
-- [ ] Rename `DokkuRadar.ServiceCache` → `DokkuRadar.Services.Cache`; move to `lib/dokku_radar/services/cache.ex`; move the `defstruct` with it.
-- [ ] Create `lib/dokku_radar/services.ex` as `DokkuRadar.Services` with a `@callback service_links()` and a delegating implementation that calls `DokkuRadar.Services.Cache.service_links/0`.
-- [ ] Update `DokkuRadar.Collector`: change `@service_cache` to reference `DokkuRadar.Services`; update struct references from `%DokkuRadar.ServiceCache{}` to `%DokkuRadar.Services.Cache{}`.
-- [ ] Update `DokkuRadar.Application`: replace `DokkuRadar.ServiceCache` child with `DokkuRadar.Services.Cache`.
-- [ ] Update `config/test.exs`: rename all four old keys to their new module names; add `"DokkuRadar.Services": DokkuRadar.Services.Mock`.
-- [ ] Update `test/support/mocks.ex`: rename all four `Mox.defmock` entries; add `DokkuRadar.Services.Mock`.
-- [ ] Update test files: rename module aliases and struct references in `service_test.exs`, `service_plugin_test.exs`, `service_plugins_test.exs`, and `collector_test.exs`.
-- [ ] Delete old source files `service_cache.ex`, `service.ex`, `service_plugin.ex`, `service_plugins.ex`.
+- [x] Rename `DokkuRadar.ServicePlugins` → `DokkuRadar.Services.ServicePlugins`; move to `lib/dokku_radar/services/service_plugins.ex`.
+- [x] Rename `DokkuRadar.ServicePlugin` → `DokkuRadar.Services.ServicePlugin`; move to `lib/dokku_radar/services/service_plugin.ex`.
+- [x] Rename `DokkuRadar.Service` → `DokkuRadar.Services.Service`; move to `lib/dokku_radar/services/service.ex`.
+- [x] Rename `DokkuRadar.ServiceCache` → `DokkuRadar.Services.Cache`; move to `lib/dokku_radar/services/cache.ex`; move the `defstruct` with it.
+- [x] Create `lib/dokku_radar/services.ex` as `DokkuRadar.Services` with a `@callback service_links()` and a delegating implementation that calls `DokkuRadar.Services.Cache.service_links/0`.
+- [x] Update `DokkuRadar.Collector`: change `@service_cache` to reference `DokkuRadar.Services`; update struct references from `%DokkuRadar.ServiceCache{}` to `%DokkuRadar.Services.Cache{}`.
+- [x] Update `DokkuRadar.Application`: replace `DokkuRadar.ServiceCache` child with `DokkuRadar.Services.Cache`.
+- [x] Update `config/test.exs`: rename all four old keys to their new module names; add `"DokkuRadar.Services": DokkuRadar.Services.Mock`.
+- [x] Update `test/support/mocks.ex`: rename all four `Mox.defmock` entries; add `DokkuRadar.Services.Mock`.
+- [x] Update test files: rename module aliases and struct references in `service_test.exs`, `service_plugin_test.exs`, `service_plugins_test.exs`, and `collector_test.exs`.
+- [x] Delete old source files `service_cache.ex`, `service.ex`, `service_plugin.ex`, `service_plugins.ex`.
 - [ ] Ask the user for feedback on the state of the implementation and carry out any requested corrections.
 - [ ] Mark the plan as "done".
 

@@ -1,4 +1,4 @@
-defmodule DokkuRadar.ServiceCache do
+defmodule DokkuRadar.Services.Cache do
   use GenServer
 
   require Logger
@@ -7,15 +7,19 @@ defmodule DokkuRadar.ServiceCache do
 
   @service_plugins Application.compile_env(
                      :dokku_radar,
-                     :"DokkuRadar.ServicePlugins",
-                     DokkuRadar.ServicePlugins
+                     :"DokkuRadar.Services.ServicePlugins",
+                     DokkuRadar.Services.ServicePlugins
                    )
   @service_plugin Application.compile_env(
                     :dokku_radar,
-                    :"DokkuRadar.ServicePlugin",
-                    DokkuRadar.ServicePlugin
+                    :"DokkuRadar.Services.ServicePlugin",
+                    DokkuRadar.Services.ServicePlugin
                   )
-  @service Application.compile_env(:dokku_radar, :"DokkuRadar.Service", DokkuRadar.Service)
+  @service Application.compile_env(
+             :dokku_radar,
+             :"DokkuRadar.Services.Service",
+             DokkuRadar.Services.Service
+           )
 
   @default_refresh_interval :timer.minutes(10)
 

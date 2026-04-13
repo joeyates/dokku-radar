@@ -1,4 +1,4 @@
-defmodule DokkuRadar.ServicePlugins do
+defmodule DokkuRadar.Services.ServicePlugins do
   @callback list() :: {:ok, [String.t()]} | {:error, non_neg_integer(), term()}
 
   @dokku_cli Application.compile_env(:dokku_radar, :"DokkuRadar.DokkuCli", DokkuRadar.DokkuCli)

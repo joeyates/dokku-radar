@@ -1,9 +1,9 @@
-defmodule DokkuRadar.ServiceTest do
+defmodule DokkuRadar.Services.ServiceTest do
   use ExUnit.Case, async: true
 
   import Mox
 
-  alias DokkuRadar.Service
+  alias DokkuRadar.Services.Service
 
   setup :verify_on_exit!
 

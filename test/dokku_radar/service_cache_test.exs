@@ -1,9 +1,9 @@
-defmodule DokkuRadar.ServiceCacheTest do
+defmodule DokkuRadar.Services.CacheTest do
   use ExUnit.Case, async: false
 
   import Mox
 
-  alias DokkuRadar.ServiceCache
+  alias DokkuRadar.Services.Cache
 
   setup :set_mox_global
   setup :verify_on_exit!
@@ -24,7 +24,7 @@ defmodule DokkuRadar.ServiceCacheTest do
   ]
 
   defp wait_for_status(pid, status) do
-    case ServiceCache.status(pid) do
+    case Cache.status(pid) do
       ^status ->
         :ok
 
@@ -37,21 +37,26 @@ defmodule DokkuRadar.ServiceCacheTest do
     service_plugins_list_response =
       context[:service_plugins_list_response] || {:ok, Map.keys(@services)}
 
-    expect(DokkuRadar.ServicePlugins.Mock, :list, fn ->
+    expect(DokkuRadar.Services.ServicePlugins.Mock, :list, fn ->
       service_plugins_list_response
     end)
 
     service_plugin_services_calls =
       context[:service_plugin_services_calls] || @services |> Map.keys() |> length()
 
-    expect(DokkuRadar.ServicePlugin.Mock, :services, service_plugin_services_calls, fn plugin ->
-      {:ok, Map.keys(@services[plugin])}
-    end)
+    expect(
+      DokkuRadar.Services.ServicePlugin.Mock,
+      :services,
+      service_plugin_services_calls,
+      fn plugin ->
+        {:ok, Map.keys(@services[plugin])}
+      end
+    )
 
     service_links_calls = context[:service_links_calls] || 3
 
     expect(
-      DokkuRadar.Service.Mock,
+      DokkuRadar.Services.Service.Mock,
       :links,
       service_links_calls,
       fn plugin, service ->
@@ -60,7 +65,7 @@ defmodule DokkuRadar.ServiceCacheTest do
     )
 
     start_supervised!({Task.Supervisor, name: DokkuRadar.TaskSupervisor})
-    pid = start_supervised!({ServiceCache, @base_opts})
+    pid = start_supervised!({Cache, @base_opts})
 
     %{pid: pid}
   end
@@ -69,14 +74,14 @@ defmodule DokkuRadar.ServiceCacheTest do
     test "returns cached services after init", %{pid: pid} do
       :ok = wait_for_status(pid, :ready)
 
-      assert {:ok, services} = ServiceCache.service_links(pid)
+      assert {:ok, services} = Cache.service_links(pid)
       assert length(services) == 3
     end
 
     test "includes service_type in each service", %{pid: pid} do
       :ok = wait_for_status(pid, :ready)
 
-      assert {:ok, services} = ServiceCache.service_links(pid)
+      assert {:ok, services} = Cache.service_links(pid)
 
       service = hd(services)
 
@@ -90,7 +95,7 @@ defmodule DokkuRadar.ServiceCacheTest do
     test "returns empty list when no plugins are found", %{pid: pid} do
       :ok = wait_for_status(pid, :ready)
 
-      assert {:ok, []} = ServiceCache.service_links(pid)
+      assert {:ok, []} = Cache.service_links(pid)
     end
 
     @tag service_plugins_list_response: {:error, :foo}
@@ -99,7 +104,7 @@ defmodule DokkuRadar.ServiceCacheTest do
     test "returns error when pluging listing fails", %{pid: pid} do
       :ok = wait_for_status(pid, :error)
 
-      assert {:error, :no_data} = ServiceCache.service_links(pid)
+      assert {:error, :no_data} = Cache.service_links(pid)
     end
   end
 
@@ -107,21 +112,21 @@ defmodule DokkuRadar.ServiceCacheTest do
     test "updates cached services when called", %{pid: pid} do
       :ok = wait_for_status(pid, :ready)
 
-      {:ok, initial} = ServiceCache.service_links(pid)
+      {:ok, initial} = Cache.service_links(pid)
       assert Enum.any?(initial, &(&1.name == "my-db"))
 
-      expect(DokkuRadar.ServicePlugins.Mock, :list, fn ->
+      expect(DokkuRadar.Services.ServicePlugins.Mock, :list, fn ->
         {:ok, Map.keys(@services)}
       end)
 
-      expect(DokkuRadar.ServicePlugin.Mock, :services, 2, fn plugin ->
+      expect(DokkuRadar.Services.ServicePlugin.Mock, :services, 2, fn plugin ->
         {:ok, Map.keys(@services[plugin])}
       end)
 
       updated_services = put_in(@services, ["postgres", "my-db", :links], ["other-app"])
 
       expect(
-        DokkuRadar.Service.Mock,
+        DokkuRadar.Services.Service.Mock,
         :links,
         3,
         fn plugin, service ->
@@ -129,10 +134,10 @@ defmodule DokkuRadar.ServiceCacheTest do
         end
       )
 
-      ServiceCache.refresh(pid)
+      Cache.refresh(pid)
       :ok = wait_for_status(pid, :ready)
 
-      {:ok, updated} = ServiceCache.service_links(pid)
+      {:ok, updated} = Cache.service_links(pid)
       my_db = Enum.find(updated, &(&1.name == "my-db"))
       assert my_db.links == ["other-app"]
     end

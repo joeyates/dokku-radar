@@ -30,8 +30,8 @@ defmodule DokkuRadar.Collector do
               )
   @service_cache Application.compile_env(
                    :dokku_radar,
-                   :"DokkuRadar.ServiceCache",
-                   DokkuRadar.ServiceCache
+                   :"DokkuRadar.Services",
+                   DokkuRadar.Services
                  )
 
   def collect() do
