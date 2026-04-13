@@ -20,4 +20,5 @@ config app_name,
   "DokkuRadar.Services.Service": DokkuRadar.Services.Service.Mock,
   "DokkuRadar.Services.ServicePlugin": DokkuRadar.Services.ServicePlugin.Mock,
   "DokkuRadar.Services.ServicePlugins": DokkuRadar.Services.ServicePlugins.Mock,
-  "DokkuRadar.Services.Cache": DokkuRadar.Services.Cache.Mock
+  "DokkuRadar.Services.Cache": DokkuRadar.Services.Cache.Mock,
+  "DokkuRadar.Services": DokkuRadar.Services.Mock
