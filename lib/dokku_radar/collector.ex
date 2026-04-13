@@ -8,11 +8,6 @@ defmodule DokkuRadar.Collector do
                    :"DokkuRadar.DockerClient",
                    DokkuRadar.DockerClient
                  )
-  @filesystem_reader Application.compile_env(
-                       :dokku_radar,
-                       :"DokkuRadar.FilesystemReader",
-                       DokkuRadar.FilesystemReader
-                     )
   @certs_client Application.compile_env(
                   :dokku_radar,
                   :"DokkuRadar.Certs",
@@ -23,6 +18,11 @@ defmodule DokkuRadar.Collector do
                :"DokkuRadar.PsReport",
                DokkuRadar.PsReport
              )
+  @ps_scale Application.compile_env(
+              :dokku_radar,
+              :"DokkuRadar.PsScale",
+              DokkuRadar.PsScale
+            )
   @service_cache Application.compile_env(
                    :dokku_radar,
                    :"DokkuRadar.ServiceCache",
@@ -31,12 +31,11 @@ defmodule DokkuRadar.Collector do
 
   def collect() do
     docker_client = @docker_client
-    filesystem_reader = @filesystem_reader
     certs_client = @certs_client
     ps_report_client = @ps_report
+    ps_scale_client = @ps_scale
     service_cache = @service_cache
     docker_opts = []
-    filesystem_opts = []
 
     Logger.debug("Starting metrics collection")
 
@@ -60,7 +59,7 @@ defmodule DokkuRadar.Collector do
 
         stats_by_id = fetch_all_stats(dokku_containers, docker_client, docker_opts)
         inspects_by_id = fetch_all_inspects(dokku_containers, docker_client, docker_opts)
-        scales_by_app = fetch_all_scales(app_names, filesystem_reader, filesystem_opts)
+        scales_by_app = fetch_all_scales(app_names, ps_scale_client)
         expiries_by_app = fetch_cert_expiries(certs_client)
         ps_entries = fetch_ps_entries(ps_report_client)
         cached_services = fetch_cached_services(service_cache)
@@ -117,9 +116,9 @@ defmodule DokkuRadar.Collector do
     end)
   end
 
-  defp fetch_all_scales(app_names, filesystem_reader, opts) do
+  defp fetch_all_scales(app_names, ps_scale_client) do
     Map.new(app_names, fn app ->
-      {app, filesystem_reader.app_scale(app, opts)}
+      {app, ps_scale_client.scale(app)}
     end)
   end
 

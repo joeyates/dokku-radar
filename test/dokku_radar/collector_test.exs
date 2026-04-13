@@ -280,7 +280,7 @@ defmodule DokkuRadar.CollectorTest do
         {:ok, %{"State" => %{"RestartCount" => 0}}}
       end)
 
-      expect(DokkuRadar.FilesystemReader.Mock, :app_scale, fn "my-app", _opts ->
+      expect(DokkuRadar.PsScale.Mock, :scale, fn "my-app" ->
         {:ok, %{"web" => 1}}
       end)
 
@@ -318,7 +318,7 @@ defmodule DokkuRadar.CollectorTest do
         {:error, {404, %{"message" => "No such container"}}}
       end)
 
-      expect(DokkuRadar.FilesystemReader.Mock, :app_scale, fn "my-app", _opts ->
+      expect(DokkuRadar.PsScale.Mock, :scale, fn "my-app" ->
         {:ok, %{"web" => 1}}
       end)
 
@@ -334,7 +334,7 @@ defmodule DokkuRadar.CollectorTest do
       assert cr.samples == []
     end
 
-    test "handles missing scale file" do
+    test "handles ps:scale failure gracefully" do
       setup_single_app_expectations(scale: {:error, :enoent})
 
       assert {:ok, metrics} = Collector.collect()
@@ -421,7 +421,7 @@ defmodule DokkuRadar.CollectorTest do
       {:ok, %{"State" => %{"RestartCount" => restart_count}}}
     end)
 
-    expect(DokkuRadar.FilesystemReader.Mock, :app_scale, fn "my-app", _opts ->
+    expect(DokkuRadar.PsScale.Mock, :scale, fn "my-app" ->
       scale_result
     end)
 
@@ -476,7 +476,7 @@ defmodule DokkuRadar.CollectorTest do
     for app <- app_names do
       scale_result = Map.get(scales, app, {:ok, %{"web" => 1}})
 
-      expect(DokkuRadar.FilesystemReader.Mock, :app_scale, fn ^app, _opts ->
+      expect(DokkuRadar.PsScale.Mock, :scale, fn ^app ->
         scale_result
       end)
     end
