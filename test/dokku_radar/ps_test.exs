@@ -9,8 +9,13 @@ defmodule DokkuRadar.PsTest do
 
   describe "list/0" do
     test "delegates to Ps.Cache" do
-      entry = %{app: "my-app", process_type: "web", process_index: 1, state: "running",
-                cid: "abc123"}
+      entry = %{
+        app: "my-app",
+        process_type: "web",
+        process_index: 1,
+        state: "running",
+        cid: "abc123"
+      }
 
       expect(DokkuRadar.Ps.Cache.Mock, :list, fn ->
         {:ok, [entry]}

@@ -149,8 +149,12 @@ defmodule DokkuRadar.Ps.Cache do
             DokkuRadar.Ps.Scale.parse(output)
 
           {:error, output, exit_code} ->
-            Logger.warning("Failed to run ps:scale", app: app, exit_code: exit_code,
-              output: output)
+            Logger.warning("Failed to run ps:scale",
+              app: app,
+              exit_code: exit_code,
+              output: output
+            )
+
             %{}
         end
 
