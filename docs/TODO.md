@@ -205,7 +205,7 @@ Move the existing `ServiceCache` and its companion modules into a `DokkuRadar.Se
 
 # Apply namespace + cache pattern to `Git`, `Certs`, and `Ps` domains
 
-Status: [ ]
+Status: [x]
 
 ## Description
 
