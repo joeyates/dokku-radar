@@ -99,7 +99,10 @@ defmodule DokkuRadar.DokkuCli.Cache do
         {:noreply, %{state | error: reason}}
       end
 
-      def handle_info({:DOWN, ref, :process, _pid, reason}, %{update_task: %Task{ref: ref}} = state) do
+      def handle_info(
+            {:DOWN, ref, :process, _pid, reason},
+            %{update_task: %Task{ref: ref}} = state
+          ) do
         Logger.error("#{__MODULE__} load task failed: #{inspect(reason)}")
         {:noreply, %{state | update_task: nil}}
       end

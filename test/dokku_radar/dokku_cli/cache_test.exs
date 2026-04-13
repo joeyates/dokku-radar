@@ -2,7 +2,7 @@ defmodule DokkuRadar.DokkuCli.CacheTest.SuccessCache do
   use DokkuRadar.DokkuCli.Cache, interval: :timer.hours(1)
 
   @impl true
-  def load do
+  def load() do
     Agent.update(:dokku_cli_cache_test_counter, &(&1 + 1))
     {:update, :data}
   end
@@ -12,7 +12,7 @@ defmodule DokkuRadar.DokkuCli.CacheTest.SlowCache do
   use DokkuRadar.DokkuCli.Cache, interval: :timer.hours(1)
 
   @impl true
-  def load do
+  def load() do
     Agent.update(:dokku_cli_cache_test_counter, &(&1 + 1))
     Process.sleep(100)
     {:update, :data}
@@ -23,14 +23,14 @@ defmodule DokkuRadar.DokkuCli.CacheTest.ErrorCache do
   use DokkuRadar.DokkuCli.Cache, interval: :timer.hours(1)
 
   @impl true
-  def load, do: {:error, :oops}
+  def load(), do: {:error, :oops}
 end
 
 defmodule DokkuRadar.DokkuCli.CacheTest.IntervalCache do
   use DokkuRadar.DokkuCli.Cache, interval: 30
 
   @impl true
-  def load do
+  def load() do
     Agent.update(:dokku_cli_cache_test_counter, &(&1 + 1))
     {:update, :data}
   end
@@ -39,7 +39,7 @@ end
 defmodule DokkuRadar.DokkuCli.CacheTest do
   use ExUnit.Case, async: false
 
-  alias DokkuRadar.DokkuCli.CacheTest.{ErrorCache, IntervalCache, SlowCache, SuccessCache}
+  alias __MODULE__.{ErrorCache, IntervalCache, SlowCache, SuccessCache}
 
   @base_opts [name: nil, refresh_interval: nil]
 
@@ -50,7 +50,7 @@ defmodule DokkuRadar.DokkuCli.CacheTest do
     end
   end
 
-  defp load_count do
+  defp load_count() do
     Agent.get(:dokku_cli_cache_test_counter, & &1)
   end
 
