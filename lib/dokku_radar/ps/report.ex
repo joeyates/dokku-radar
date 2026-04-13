@@ -1,24 +1,8 @@
-defmodule DokkuRadar.PsReport do
-  @callback list() :: {:ok, [map()]} | {:error, term()}
-
-  @dokku_cli Application.compile_env(:dokku_radar, :"DokkuRadar.DokkuCli", DokkuRadar.DokkuCli)
-
-  require Logger
-
-  def list() do
-    Logger.debug("Fetching ps report via ps:report")
-
-    case @dokku_cli.call("ps:report") do
-      {:ok, output} ->
-        {:ok, parse(output)}
-
-      {:error, output, exit_code} ->
-        Logger.warning("Failed to run ps:report", exit_code: exit_code, output: output)
-        {:error, {output, exit_code}}
-    end
-  end
-
-  defp parse(output) do
+defmodule DokkuRadar.Ps.Report do
+  @doc """
+  Parses multi-app `ps:report` output and returns a list of process entry maps.
+  """
+  def parse(output) do
     {entries, _current_app} =
       output
       |> String.split("\n", trim: true)

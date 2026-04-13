@@ -6,6 +6,9 @@ defmodule DokkuRadar.Application do
     port = Application.get_env(:dokku_radar, :port, 9110)
 
     children = [
+      DokkuRadar.Git.Cache,
+      DokkuRadar.Certs.Cache,
+      DokkuRadar.Ps.Cache,
       DokkuRadar.Services.Cache,
       {Task.Supervisor, name: DokkuRadar.TaskSupervisor},
       {Bandit, plug: DokkuRadar.Router, port: port}
