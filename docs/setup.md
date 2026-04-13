@@ -82,12 +82,11 @@ export DOKKU_APP=dokku-radar
 
 dokku apps:create $DOKKU_APP
 dokku proxy:disable $DOKKU_APP
-# Give access to Doker state
+# Give access to Docker state
 dokku storage:mount $DOKKU_APP /var/run/docker.sock:/var/run/docker.sock
-# Give access to Dokku data
-dokku storage:mount $DOKKU_APP /var/lib/dokku/data:/var/lib/dokku/data:ro
-# Give access to the single Dokku apps
-dokku storage:mount $DOKKU_APP /home/dokku:/home/dokku:ro
+DOCKER_GID=$(ssh -o LogLevel=QUIET root@$DOKKU_HOST stat --format '%g' /var/run/docker.sock)
+dokku docker-options:add dokku-radar deploy "--group-add $DOCKER_GID"
+# Give Prometheus access to our HTTP endpoint
 dokku network:set $DOKKU_APP attach-post-deploy monitoring
 ```
 
