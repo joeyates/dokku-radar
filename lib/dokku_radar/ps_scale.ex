@@ -14,7 +14,12 @@ defmodule DokkuRadar.PsScale do
         {:ok, parse(output)}
 
       {:error, output, exit_code} ->
-        Logger.warning("Failed to run ps:scale", app: app_name, exit_code: exit_code, output: output)
+        Logger.warning("Failed to run ps:scale",
+          app: app_name,
+          exit_code: exit_code,
+          output: output
+        )
+
         {:error, {output, exit_code}}
     end
   end

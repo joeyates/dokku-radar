@@ -63,7 +63,10 @@ defmodule DokkuRadar.Certs do
 
   defp parse_expiry_line(line) do
     # Format: "       Ssl expires at:                Jul  1 08:39:08 2026 GMT"
-    case Regex.run(~r/Ssl expires at:\s+(\w{3})\s+(\d{1,2})\s+(\d{2}):(\d{2}):(\d{2})\s+(\d{4})/, line) do
+    case Regex.run(
+           ~r/Ssl expires at:\s+(\w{3})\s+(\d{1,2})\s+(\d{2}):(\d{2}):(\d{2})\s+(\d{4})/,
+           line
+         ) do
       [_, month_str, day_str, hour_str, min_str, sec_str, year_str] ->
         month = Map.fetch!(@month_map, month_str)
         day = String.to_integer(day_str)
