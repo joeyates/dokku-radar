@@ -189,22 +189,23 @@ defmodule DokkuRadar.CollectorTest do
       assert sample.value == 5
     end
 
-    test "uses most recent container creation time for last deploy" do
+    test "uses git:report timestamp for last deploy" do
       containers = [
-        dokku_container("aaa111", "my-app", "web", 1, "running", 1_700_000_100),
-        dokku_container("bbb222", "my-app", "web", 2, "running", 1_700_000_200)
+        dokku_container("aaa11111111", "my-app", "web", 1, "running", 1_700_000_100),
+        dokku_container("bbb22222222", "my-app", "web", 2, "running", 1_700_000_200)
       ]
 
       setup_expectations(
         containers: containers,
         scales: %{"my-app" => {:ok, %{"web" => 2}}},
-        cert_expiries: %{"my-app" => {:error, :no_cert}}
+        cert_expiries: %{"my-app" => {:error, :no_cert}},
+        git_reports: %{"my-app" => {:ok, 1_775_125_215}}
       )
 
       assert {:ok, metrics} = Collector.collect()
 
       ld = find_metric(metrics, "dokku_app_last_deploy_timestamp")
-      assert [%{labels: %{"app" => "my-app"}, value: 1_700_000_200}] = ld.samples
+      assert [%{labels: %{"app" => "my-app"}, value: 1_775_125_215}] = ld.samples
     end
 
     test "reports SSL cert expiry as unix timestamp" do
@@ -290,6 +291,8 @@ defmodule DokkuRadar.CollectorTest do
         {:ok, [ps_entry("my-app", "web", 1, "running", "aaa11111111")]}
       end)
 
+      expect(DokkuRadar.GitReport.Mock, :report, fn "my-app" -> {:ok, 1_700_000_000} end)
+
       assert {:ok, metrics} = Collector.collect()
 
       cu = find_metric(metrics, "dokku_app_cpu_usage_seconds_total")
@@ -327,6 +330,8 @@ defmodule DokkuRadar.CollectorTest do
       expect(DokkuRadar.PsReport.Mock, :list, fn ->
         {:ok, [ps_entry("my-app", "web", 1, "running", "aaa11111111")]}
       end)
+
+      expect(DokkuRadar.GitReport.Mock, :report, fn "my-app" -> {:ok, 1_700_000_000} end)
 
       assert {:ok, metrics} = Collector.collect()
 
@@ -437,6 +442,8 @@ defmodule DokkuRadar.CollectorTest do
       {:ok, [ps_entry("my-app", "web", 1, "running", cid)]}
     end)
 
+    expect(DokkuRadar.GitReport.Mock, :report, fn "my-app" -> {:ok, 1_700_000_000} end)
+
     if setup_service_cache do
       stub(DokkuRadar.ServiceCache.Mock, :service_links, fn -> {:ok, []} end)
     end
@@ -446,6 +453,7 @@ defmodule DokkuRadar.CollectorTest do
     containers = Keyword.fetch!(opts, :containers)
     scales = Keyword.get(opts, :scales, %{})
     cert_expiries = Keyword.get(opts, :cert_expiries, %{})
+    git_reports = Keyword.get(opts, :git_reports, %{})
 
     stub(DokkuRadar.ServiceCache.Mock, :service_links, fn -> {:ok, []} end)
 
@@ -478,6 +486,12 @@ defmodule DokkuRadar.CollectorTest do
 
       expect(DokkuRadar.PsScale.Mock, :scale, fn ^app ->
         scale_result
+      end)
+
+      git_result = Map.get(git_reports, app, {:ok, 1_700_000_000})
+
+      expect(DokkuRadar.GitReport.Mock, :report, fn ^app ->
+        git_result
       end)
     end
 
