@@ -28,23 +28,16 @@ defmodule DokkuRadar.Collector do
                 :"DokkuRadar.GitReport",
                 DokkuRadar.GitReport
               )
-  @service_cache Application.compile_env(
-                   :dokku_radar,
-                   :"DokkuRadar.Services",
-                   DokkuRadar.Services
-                 )
+  @service_client Application.compile_env(
+                    :dokku_radar,
+                    :"DokkuRadar.Services",
+                    DokkuRadar.Services
+                  )
 
   def collect() do
-    certs_client = @certs_client
-    ps_report_client = @ps_report
-    ps_scale_client = @ps_scale
-    git_report_client = @git_report
-    service_cache = @service_cache
-    docker_opts = []
-
     Logger.debug("Starting metrics collection")
 
-    case ps_report_client.list() do
+    case @ps_report.list() do
       {:error, reason} ->
         Logger.warning("Metrics collection failed: could not fetch ps:report",
           reason: inspect(reason)
@@ -57,12 +50,12 @@ defmodule DokkuRadar.Collector do
 
         Logger.info("Collecting metrics", apps: length(app_names))
 
-        stats_by_id = fetch_all_stats(ps_entries, @docker_client, docker_opts)
-        inspects_by_id = fetch_all_inspects(ps_entries, @docker_client, docker_opts)
-        scales_by_app = fetch_all_scales(app_names, ps_scale_client)
-        expiries_by_app = fetch_cert_expiries(certs_client)
-        git_reports_by_app = fetch_git_reports(app_names, git_report_client)
-        cached_services = fetch_cached_services(service_cache)
+        stats_by_id = fetch_all_stats(ps_entries)
+        inspects_by_id = fetch_all_inspects(ps_entries)
+        scales_by_app = fetch_all_scales(app_names)
+        expiries_by_app = fetch_cert_expiries()
+        git_reports_by_app = fetch_git_reports(app_names)
+        cached_services = fetch_services()
 
         metrics = [
           processes_configured_metric(scales_by_app),
@@ -83,36 +76,36 @@ defmodule DokkuRadar.Collector do
     end
   end
 
-  defp fetch_all_stats(ps_entries, docker_client, opts) do
+  defp fetch_all_stats(ps_entries) do
     Map.new(ps_entries, fn entry ->
       cid = entry.cid
-      {cid, docker_client.container_stats(cid, opts)}
+      {cid, @docker_client.container_stats(cid)}
     end)
   end
 
-  defp fetch_all_inspects(ps_entries, docker_client, opts) do
+  defp fetch_all_inspects(ps_entries) do
     Map.new(ps_entries, fn entry ->
       cid = entry.cid
-      {cid, docker_client.container_inspect(cid, opts)}
+      {cid, @docker_client.container_inspect(cid)}
     end)
   end
 
-  defp fetch_all_scales(app_names, ps_scale_client) do
+  defp fetch_all_scales(app_names) do
     Map.new(app_names, fn app ->
-      {app, ps_scale_client.scale(app)}
+      {app, @ps_scale.scale(app)}
     end)
   end
 
-  defp fetch_cert_expiries(certs_client) do
-    case certs_client.list() do
+  defp fetch_cert_expiries() do
+    case @certs_client.list() do
       {:ok, expiries} -> expiries
       {:error, _} -> %{}
     end
   end
 
-  defp fetch_git_reports(app_names, git_report_client) do
+  defp fetch_git_reports(app_names) do
     Map.new(app_names, fn app ->
-      {app, git_report_client.report(app)}
+      {app, @git_report.report(app)}
     end)
   end
 
@@ -292,8 +285,8 @@ defmodule DokkuRadar.Collector do
     }
   end
 
-  defp fetch_cached_services(service_cache) do
-    case service_cache.service_links() do
+  defp fetch_services() do
+    case @service_client.service_links() do
       {:ok, services} -> services
       {:error, _} -> []
     end

@@ -269,11 +269,11 @@ defmodule DokkuRadar.CollectorTest do
     test "handles stats failure gracefully" do
       stub(DokkuRadar.Services.Mock, :service_links, fn -> {:ok, []} end)
 
-      expect(DokkuRadar.DockerClient.Mock, :container_stats, fn "aaa11111111", _opts ->
+      expect(DokkuRadar.DockerClient.Mock, :container_stats, fn "aaa11111111" ->
         {:error, :timeout}
       end)
 
-      expect(DokkuRadar.DockerClient.Mock, :container_inspect, fn "aaa11111111", _opts ->
+      expect(DokkuRadar.DockerClient.Mock, :container_inspect, fn "aaa11111111" ->
         {:ok, %{"State" => %{"RestartCount" => 0}}}
       end)
 
@@ -305,11 +305,11 @@ defmodule DokkuRadar.CollectorTest do
     test "handles inspect failure gracefully" do
       stub(DokkuRadar.Services.Mock, :service_links, fn -> {:ok, []} end)
 
-      expect(DokkuRadar.DockerClient.Mock, :container_stats, fn "aaa11111111", _opts ->
+      expect(DokkuRadar.DockerClient.Mock, :container_stats, fn "aaa11111111" ->
         {:ok, default_stats()}
       end)
 
-      expect(DokkuRadar.DockerClient.Mock, :container_inspect, fn "aaa11111111", _opts ->
+      expect(DokkuRadar.DockerClient.Mock, :container_inspect, fn "aaa11111111" ->
         {:error, {404, %{"message" => "No such container"}}}
       end)
 
@@ -403,11 +403,11 @@ defmodule DokkuRadar.CollectorTest do
 
     scale_result = if is_map(scale), do: {:ok, scale}, else: scale
 
-    expect(DokkuRadar.DockerClient.Mock, :container_stats, fn ^cid, _opts ->
+    expect(DokkuRadar.DockerClient.Mock, :container_stats, fn ^cid ->
       {:ok, default_stats(cpu_ns: cpu_ns, memory_bytes: memory_bytes)}
     end)
 
-    expect(DokkuRadar.DockerClient.Mock, :container_inspect, fn ^cid, _opts ->
+    expect(DokkuRadar.DockerClient.Mock, :container_inspect, fn ^cid ->
       {:ok, %{"State" => %{"RestartCount" => restart_count}}}
     end)
 
@@ -461,11 +461,11 @@ defmodule DokkuRadar.CollectorTest do
     for entry <- ps_report_entries do
       cid = entry.cid
 
-      expect(DokkuRadar.DockerClient.Mock, :container_stats, fn ^cid, _opts ->
+      expect(DokkuRadar.DockerClient.Mock, :container_stats, fn ^cid ->
         {:ok, default_stats()}
       end)
 
-      expect(DokkuRadar.DockerClient.Mock, :container_inspect, fn ^cid, _opts ->
+      expect(DokkuRadar.DockerClient.Mock, :container_inspect, fn ^cid ->
         {:ok, %{"State" => %{"RestartCount" => 0}}}
       end)
     end
