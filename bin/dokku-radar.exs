@@ -11,3 +11,5 @@ Mix.install(
 )
 
 DokkuRadar.CLI.run(System.argv())
+
+System.halt(0)

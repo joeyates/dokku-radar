@@ -35,8 +35,6 @@ defmodule DokkuRadar.CLI do
         %App{} = dokku_radar_app = dokku_radar_app_fom_env!(switches)
         :ok = Setup.run(dokku_radar_app, admin_email, grafana_domain, private_key)
     end
-
-    System.halt(0)
   end
 
   defp dokku_radar_app_fom_env!(opts) do
