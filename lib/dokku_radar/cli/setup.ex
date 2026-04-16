@@ -29,9 +29,10 @@ defmodule DokkuRadar.CLI.Setup do
     :ok = ensure_storage_mount(app, destination_path, "/var/lib/grafana")
     :ok = ensure_network_property(app, "attach-post-deploy", "monitoring")
     :ok = set_host_file_owner(app, destination_path, "472:472")
-    :ok = ensure_image_deployed(app, "grafana/grafana:latest")
+    # :ok = ensure_image_deployed(app, "grafana/grafana:latest")
   end
 
+  _a = ~S"""
   defp ensure_image_deployed(%App{} = app, image) do
     {:ok, deploy_source} = get_deploy_source(app)
 
@@ -86,6 +87,7 @@ defmodule DokkuRadar.CLI.Setup do
         raise "Failed to get deploy source, exit code #{exit}: #{output}"
     end
   end
+  """
 
   defp ensure_network_exists(dokku_host, network) do
     IO.puts("Checking the Dokku network #{inspect(network)} exists...")
