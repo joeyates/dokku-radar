@@ -237,7 +237,7 @@ Extract the shared GenServer boilerplate from `Certs.Cache`, `Git.Cache`, `Ps.Ca
 
 # Use DokkuRemote for dokku calls
 
-Status: [ ]
+Status: [x]
 
 ## Description
 
