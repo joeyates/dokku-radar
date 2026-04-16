@@ -28,7 +28,7 @@ first, implement, `mix test`, `mix check-formatted`, commit.
 
 ## Task 2 — `DokkuRadar.Certs.Cache` (inject `DokkuRemote.Commands.Certs`)
 
-- In `DokkuRemote.Commands.Certs`, add
+- [x] In `DokkuRemote.Commands.Certs`, add
   `@callback report(String.t()) :: {:ok, reports()} | {:error, any(), any()}`.
 - In `Certs.Cache`, replace `@dokku_cli` with `@commands_certs` injecting
   `DokkuRemote.Commands.Certs`. Replace `@dokku_cli.call("certs:report")` with

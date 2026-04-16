@@ -11,12 +11,19 @@ defmodule DokkuRadar.DokkuCliTest do
   @ssh_certificate_path "/tmp/test_key"
 
   setup do
+    original = Application.get_env(:dokku_radar, DokkuRadar.DokkuCli)
+
     Application.put_env(:dokku_radar, DokkuRadar.DokkuCli,
       dokku_host: @dokku_host,
       ssh_certificate_path: @ssh_certificate_path
     )
 
-    on_exit(fn -> Application.delete_env(:dokku_radar, DokkuRadar.DokkuCli) end)
+    on_exit(fn ->
+      case original do
+        nil -> Application.delete_env(:dokku_radar, DokkuRadar.DokkuCli)
+        config -> Application.put_env(:dokku_radar, DokkuRadar.DokkuCli, config)
+      end
+    end)
 
     :ok
   end
