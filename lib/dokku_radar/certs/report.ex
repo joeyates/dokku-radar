@@ -14,6 +14,28 @@ defmodule DokkuRadar.Certs.Report do
     "Dec" => 12
   }
 
+  def parse_expiry(expires_at_str) do
+    case Regex.run(
+           ~r/(\w{3})\s+(\d{1,2})\s+(\d{2}):(\d{2}):(\d{2})\s+(\d{4})/,
+           expires_at_str
+         ) do
+      [_, month_str, day_str, hour_str, min_str, sec_str, year_str] ->
+        month = Map.fetch!(@month_map, month_str)
+        day = String.to_integer(day_str)
+        hour = String.to_integer(hour_str)
+        minute = String.to_integer(min_str)
+        second = String.to_integer(sec_str)
+        year = String.to_integer(year_str)
+
+        date = Date.new!(year, month, day)
+        time = Time.new!(hour, minute, second)
+        {:ok, DateTime.new!(date, time)}
+
+      _ ->
+        :error
+    end
+  end
+
   @doc """
   Parses multi-app `certs:report` output and returns a map of app names to
   their SSL certificate expiry `DateTime`s.

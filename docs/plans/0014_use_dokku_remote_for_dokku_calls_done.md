@@ -11,7 +11,7 @@ first, implement, `mix test`, `mix check-formatted`, commit.
 
 ## Task 1 — `DokkuRadar.Git.Report` (inject `DokkuRemote.Commands.Git`)
 
-- In `DokkuRemote.Commands.Git`, add
+- [x] In `DokkuRemote.Commands.Git`, add
   `@callback report(String.t()) :: {:ok, reports()} | {:error, any(), any()}`.
 - In `Git.Report`, add
   `@commands_git Application.compile_env(:dokku_radar, :"DokkuRemote.Commands.Git", DokkuRemote.Commands.Git)`
@@ -28,7 +28,7 @@ first, implement, `mix test`, `mix check-formatted`, commit.
 
 ## Task 2 — `DokkuRadar.Certs.Cache` (inject `DokkuRemote.Commands.Certs`)
 
-- In `DokkuRemote.Commands.Certs`, add
+- [x] In `DokkuRemote.Commands.Certs`, add
   `@callback report(String.t()) :: {:ok, reports()} | {:error, any(), any()}`.
 - In `Certs.Cache`, replace `@dokku_cli` with `@commands_certs` injecting
   `DokkuRemote.Commands.Certs`. Replace `@dokku_cli.call("certs:report")` with
@@ -45,7 +45,7 @@ first, implement, `mix test`, `mix check-formatted`, commit.
 
 ## Task 3 — `DokkuRadar.Ps.Cache` (inject `DokkuRemote.Commands.Ps`)
 
-- In `DokkuRemote.Commands.Ps`, add a `report/1` function (runs `ps:report`)
+- [x] In `DokkuRemote.Commands.Ps`, add a `report/1` function (runs `ps:report`)
   and `@callback` declarations for `report/1`, `scale/1`, `scale/2`.
 - In `Ps.Cache`, replace `@dokku_cli` with `@commands_ps` injecting
   `DokkuRemote.Commands.Ps`. Replace `@dokku_cli.call("ps:report")` with
@@ -59,7 +59,7 @@ first, implement, `mix test`, `mix check-formatted`, commit.
 
 ## Task 4 — `DokkuRadar.Services.ServicePlugins` (inject `DokkuRemote.Commands.Plugin`)
 
-- In `DokkuRemote.Commands.Plugin`, add
+- [x] In `DokkuRemote.Commands.Plugin`, add
   `@callback list(String.t()) :: {:ok, [Entry.t()]} | {:error, any(), any()}`.
 - In `ServicePlugins`, replace `@dokku_cli` with `@commands_plugin` injecting
   `DokkuRemote.Commands.Plugin`. Replace `@dokku_cli.call("plugin:list")` with
@@ -77,7 +77,7 @@ Use pattern-matching on the plugin name to call the appropriate
 `DokkuRemote.Commands.*` module directly, with one injected module attribute
 per supported service type. Unknown plugin names raise at runtime.
 
-### `ServicePlugin`
+### `ServicePlugin` [x]
 
 Replace the single `@dokku_cli`-based `services/1` with per-plugin clauses:
 
@@ -136,7 +136,7 @@ def links(other, _service), do: raise("Unknown service plugin: #{other}")
 
 ## Task 6 — Cleanup: remove `DokkuCli.call/2`
 
-- Remove `call/2`, `ssh_args/1`, `@system`, and the `@callback call(...)` declarations
+- [x] Remove `call/2`, `ssh_args/1`, `@system`, and the `@callback call(...)` declarations
   from `DokkuRadar.DokkuCli`. Keep `dokku_host!/0` — it is still called by the
   modules above to obtain the host before passing to DokkuRemote.
 - Remove `DokkuRadar.DokkuCli.Mock` from `test/support/mocks.ex` and

@@ -7,17 +7,10 @@ defmodule DokkuRadar.Services.ServicePluginTest do
 
   setup :verify_on_exit!
 
-  @postgres_list_output """
-  =====> Postgres services
-  my-database
-  another-db
-  orphan-db
-  """
-
-  describe "services/1" do
+  describe "services/1 for postgres" do
     test "returns service names" do
-      expect(DokkuRadar.DokkuCli.Mock, :call, fn "postgres:list" ->
-        {:ok, @postgres_list_output}
+      expect(DokkuRemote.Commands.Postgres.Mock, :list, fn _host ->
+        {:ok, ["my-database", "another-db", "orphan-db"]}
       end)
 
       assert {:ok, services} = ServicePlugin.services("postgres")
@@ -28,22 +21,33 @@ defmodule DokkuRadar.Services.ServicePluginTest do
       assert "orphan-db" in services
     end
 
-    test "ignores the header line" do
-      expect(DokkuRadar.DokkuCli.Mock, :call, fn "postgres:list" ->
-        {:ok, @postgres_list_output}
-      end)
-
-      assert {:ok, services} = ServicePlugin.services("postgres")
-
-      refute Enum.any?(services, &String.starts_with?(&1, "====="))
-    end
-
     test "returns error on non-zero exit code" do
-      expect(DokkuRadar.DokkuCli.Mock, :call, fn "badtype:list" ->
-        {:error, "Unknown service type: badtype", 1}
+      expect(DokkuRemote.Commands.Postgres.Mock, :list, fn _host ->
+        {:error, "Connection refused", 255}
       end)
 
-      assert {:error, _exit_code, _reason} = ServicePlugin.services("badtype")
+      assert {:error, _exit_code, _reason} = ServicePlugin.services("postgres")
+    end
+  end
+
+  describe "services/1 for redis" do
+    test "returns service names" do
+      expect(DokkuRemote.Commands.Redis.Mock, :list, fn _host ->
+        {:ok, ["my-redis", "cache"]}
+      end)
+
+      assert {:ok, services} = ServicePlugin.services("redis")
+
+      assert length(services) == 2
+      assert "my-redis" in services
+    end
+  end
+
+  describe "services/1 for unknown plugin" do
+    test "raises at runtime" do
+      assert_raise RuntimeError, ~r/Unknown service plugin/, fn ->
+        ServicePlugin.services("badtype")
+      end
     end
   end
 end

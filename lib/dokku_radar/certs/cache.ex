@@ -3,7 +3,11 @@ defmodule DokkuRadar.Certs.Cache do
 
   require Logger
 
-  @dokku_cli Application.compile_env(:dokku_radar, :"DokkuRadar.DokkuCli", DokkuRadar.DokkuCli)
+  @commands_certs Application.compile_env(
+                    :dokku_radar,
+                    :"DokkuRemote.Commands.Certs",
+                    DokkuRemote.Commands.Certs
+                  )
 
   #################
   # Client API
@@ -33,9 +37,17 @@ defmodule DokkuRadar.Certs.Cache do
 
   @impl DokkuRadar.DokkuCli.Cache
   def load() do
-    case @dokku_cli.call("certs:report") do
-      {:ok, output} ->
-        {:update, DokkuRadar.Certs.Report.parse(output)}
+    dokku_host = DokkuRadar.DokkuCli.dokku_host!()
+
+    case @commands_certs.report(dokku_host) do
+      {:ok, reports} ->
+        expiries =
+          Map.new(reports, fn {app, report} ->
+            {:ok, dt} = DokkuRadar.Certs.Report.parse_expiry(report.expires_at)
+            {app, dt}
+          end)
+
+        {:update, expiries}
 
       {:error, output, exit_code} ->
         Logger.warning("Failed to run certs:report", exit_code: exit_code, output: output)

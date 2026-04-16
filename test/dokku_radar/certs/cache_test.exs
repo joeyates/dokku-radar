@@ -8,14 +8,19 @@ defmodule DokkuRadar.Certs.CacheTest do
   setup :set_mox_global
   setup :verify_on_exit!
 
-  @certs_report_output """
-  =====> blog-cms ssl information
-         Ssl expires at:                Jul  1 08:39:08 2026 GMT
-         Ssl enabled:                   true
-  =====> nextcloud ssl information
-         Ssl expires at:                Dec 31 23:59:59 2025 GMT
-         Ssl enabled:                   true
-  """
+  defp cert_report(app_name, expires_at) do
+    %DokkuRemote.Commands.Certs.Report{
+      app_name: app_name,
+      dir: "/home/dokku/#{app_name}/tls",
+      enabled: true,
+      hostnames: "#{app_name}.example.com",
+      expires_at: expires_at,
+      issuer: "Let's Encrypt",
+      starts_at: "Jan  1 00:00:00 2025 GMT",
+      subject: "/CN=#{app_name}.example.com",
+      verified: "true"
+    }
+  end
 
   @base_opts [name: nil, refresh_interval: nil]
 
@@ -27,12 +32,18 @@ defmodule DokkuRadar.Certs.CacheTest do
   end
 
   setup do
-    expect(DokkuRadar.DokkuCli.Mock, :call, fn "certs:report" ->
-      {:ok, @certs_report_output}
+    reports = %{
+      "blog-cms" => cert_report("blog-cms", "Jul  1 08:39:08 2026 GMT"),
+      "nextcloud" => cert_report("nextcloud", "Dec 31 23:59:59 2025 GMT")
+    }
+
+    expect(DokkuRemote.Commands.Certs.Mock, :report, fn _host ->
+      {:ok, reports}
     end)
 
     start_supervised!({Task.Supervisor, name: DokkuRadar.TaskSupervisor})
     pid = start_supervised!({Cache, @base_opts})
+    wait_for_ready(pid)
     %{pid: pid}
   end
 
@@ -54,9 +65,9 @@ defmodule DokkuRadar.Certs.CacheTest do
     end
   end
 
-  describe "when DokkuCli fails" do
+  describe "when DokkuRemote.Commands.Certs fails" do
     setup do
-      expect(DokkuRadar.DokkuCli.Mock, :call, fn "certs:report" ->
+      expect(DokkuRemote.Commands.Certs.Mock, :report, fn _host ->
         {:error, "ssh: Connection refused", 255}
       end)
 
