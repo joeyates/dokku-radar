@@ -136,7 +136,7 @@ def links(other, _service), do: raise("Unknown service plugin: #{other}")
 
 ## Task 6 — Cleanup: remove `DokkuCli.call/2`
 
-- Remove `call/2`, `ssh_args/1`, `@system`, and the `@callback call(...)` declarations
+- [x] Remove `call/2`, `ssh_args/1`, `@system`, and the `@callback call(...)` declarations
   from `DokkuRadar.DokkuCli`. Keep `dokku_host!/0` — it is still called by the
   modules above to obtain the host before passing to DokkuRemote.
 - Remove `DokkuRadar.DokkuCli.Mock` from `test/support/mocks.ex` and

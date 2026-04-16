@@ -21,9 +21,10 @@ config app_name,
   "DokkuRadar.Ps.Cache": DokkuRadar.Ps.Cache.Mock,
   "DokkuRadar.Ps": DokkuRadar.Ps.Mock,
   "DokkuRadar.Collector": DokkuRadar.Collector.Mock,
-  "DokkuRadar.DokkuCli": DokkuRadar.DokkuCli.Mock,
   "DokkuRadar.Services.Service": DokkuRadar.Services.Service.Mock,
   "DokkuRadar.Services.ServicePlugin": DokkuRadar.Services.ServicePlugin.Mock,
   "DokkuRadar.Services.ServicePlugins": DokkuRadar.Services.ServicePlugins.Mock,
   "DokkuRadar.Services.Cache": DokkuRadar.Services.Cache.Mock,
   "DokkuRadar.Services": DokkuRadar.Services.Mock
+
+config :dokku_radar, DokkuRadar.DokkuCli, dokku_host: "test.example.com"
