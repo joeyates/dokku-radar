@@ -35,7 +35,9 @@ defmodule DokkuRadar.MixProject do
   defp deps() do
     [
       {:bandit, "~> 1.0"},
+      {:dokku_remote, ">= 0.0.0", path: "../dokku_remote"},
       {:green, "~> 0.1.11", only: :dev},
+      {:helpful_options, "~> 0.4.4"},
       {:jason, "~> 1.4"},
       {:mox, "~> 1.0", only: :test},
       {:plug, "~> 1.16"},

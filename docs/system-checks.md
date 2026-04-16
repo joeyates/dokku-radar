@@ -30,8 +30,7 @@ dokku enter dokku-radar web wget -qO- http://127.0.0.1:9110/metrics | head -20
 Check dokku-radar has access to the host's dokku:
 
 ```bash
-ssh -t dokku@$DOKKU_HOST enter dokku-radar web '/bin/sh -c "ssh -o BatchMode=yes -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o Stric
-tHostKeyChecking=no dokku@$DOKKU_HOST plugin:list"'
+dokku enter dokku-radar web '/bin/sh -c "ssh -o BatchMode=yes -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o StrictHostKeyChecking=no dokku@$DOKKU_HOST plugin:list"'
 ```
 
 Access an IEx shell in the running application:
