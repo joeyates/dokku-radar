@@ -234,3 +234,16 @@ Extract the shared GenServer boilerplate from `Certs.Cache`, `Git.Cache`, `Ps.Ca
 - Unify `data` field names: `Certs.Cache` (expiries map), `Git.Cache` (timestamps map), `Ps.Cache` (`%{entries:, scales:}`), `Services.Cache` (`%{plugins:, services:, service_links:}`).
 - Bug fixes in `Services.Cache`: (1) call `maybe_enqueue_refresh` after `:update`; (2) fix kill-and-restart so `update_task` is cleared and `initiate_load` is called immediately; (3) change `load/0` to return `{:update, %{plugins:, services:, service_links:}}`.
 - See `refactor.md` for full per-module skeletons.
+
+# Use DokkuRemote for dokku calls
+
+Status: [ ]
+
+## Description
+
+Replace `DokkuRadar.DokkuCli` (the bespoke SSH wrapper) with the already-available `DokkuRemote` library.
+
+## Technical Specifics
+
+- `DokkuRemote` is already a dependency.
+- All `@dokku_cli.call(...)` usages in `Certs.Cache`, `Git.Cache`, `Ps.Cache`, `Services.Cache`, `Services.ServicePlugin`, `Services.ServicePlugins`, and `Services.Service` should be replaced with appropriate `DokkuRemote.Commands.*` calls.
