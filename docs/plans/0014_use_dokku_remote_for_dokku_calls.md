@@ -59,7 +59,7 @@ first, implement, `mix test`, `mix check-formatted`, commit.
 
 ## Task 4 — `DokkuRadar.Services.ServicePlugins` (inject `DokkuRemote.Commands.Plugin`)
 
-- In `DokkuRemote.Commands.Plugin`, add
+- [x] In `DokkuRemote.Commands.Plugin`, add
   `@callback list(String.t()) :: {:ok, [Entry.t()]} | {:error, any(), any()}`.
 - In `ServicePlugins`, replace `@dokku_cli` with `@commands_plugin` injecting
   `DokkuRemote.Commands.Plugin`. Replace `@dokku_cli.call("plugin:list")` with

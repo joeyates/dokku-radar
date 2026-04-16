@@ -1,7 +1,11 @@
 defmodule DokkuRadar.Services.ServicePlugins do
   @callback list() :: {:ok, [String.t()]} | {:error, non_neg_integer(), term()}
 
-  @dokku_cli Application.compile_env(:dokku_radar, :"DokkuRadar.DokkuCli", DokkuRadar.DokkuCli)
+  @commands_plugin Application.compile_env(
+                     :dokku_radar,
+                     :"DokkuRemote.Commands.Plugin",
+                     DokkuRemote.Commands.Plugin
+                   )
 
   require Logger
 
@@ -18,9 +22,11 @@ defmodule DokkuRadar.Services.ServicePlugins do
   )
 
   def list() do
-    case @dokku_cli.call("plugin:list") do
-      {:ok, output} ->
-        types = parse_plugin_list(output)
+    dokku_host = DokkuRadar.DokkuCli.dokku_host!()
+
+    case @commands_plugin.list(dokku_host) do
+      {:ok, entries} ->
+        types = entries |> Enum.map(& &1.name) |> Enum.filter(&(&1 in @known_services))
         Logger.info("Fetched Dokku service plugins", count: length(types))
         {:ok, types}
 
@@ -32,14 +38,5 @@ defmodule DokkuRadar.Services.ServicePlugins do
 
         {:error, exit_code, output}
     end
-  end
-
-  defp parse_plugin_list(output) do
-    output
-    |> String.split("\n", trim: true)
-    |> Enum.map(fn line ->
-      line |> String.trim() |> String.split(~r/\s+/) |> List.first()
-    end)
-    |> Enum.filter(&(&1 in @known_services))
   end
 end

@@ -7,18 +7,28 @@ defmodule DokkuRadar.Services.ServicePluginsTest do
 
   setup :verify_on_exit!
 
-  @plugin_list_output """
-  =====> Installed plugins
-    access          deployed access:
-    letsencrypt     deployed letsencrypt:latest
-    postgres        deployed postgres:latest
-    redis           deployed redis:latest
-    scheduler-simple deployed scheduler-simple:latest
-  """
+  defp entry(name) do
+    %DokkuRemote.Commands.Plugin.Entry{
+      name: name,
+      version: "#{name}:latest",
+      enabled: true,
+      description: "#{name} plugin"
+    }
+  end
+
+  defp plugin_entries() do
+    [
+      entry("access"),
+      entry("letsencrypt"),
+      entry("postgres"),
+      entry("redis"),
+      entry("scheduler-simple")
+    ]
+  end
 
   describe "list/0" do
     test "returns known service types found in plugin list" do
-      expect(DokkuRadar.DokkuCli.Mock, :call, fn "plugin:list" -> {:ok, @plugin_list_output} end)
+      expect(DokkuRemote.Commands.Plugin.Mock, :list, fn _host -> {:ok, plugin_entries()} end)
 
       assert {:ok, types} = ServicePlugins.list()
 
@@ -27,7 +37,7 @@ defmodule DokkuRadar.Services.ServicePluginsTest do
     end
 
     test "ignores non-service plugins" do
-      expect(DokkuRadar.DokkuCli.Mock, :call, fn "plugin:list" -> {:ok, @plugin_list_output} end)
+      expect(DokkuRemote.Commands.Plugin.Mock, :list, fn _host -> {:ok, plugin_entries()} end)
 
       assert {:ok, types} = ServicePlugins.list()
 
@@ -37,7 +47,7 @@ defmodule DokkuRadar.Services.ServicePluginsTest do
     end
 
     test "returns error on non-zero exit code" do
-      expect(DokkuRadar.DokkuCli.Mock, :call, fn "plugin:list" ->
+      expect(DokkuRemote.Commands.Plugin.Mock, :list, fn _host ->
         {:error, "ssh: connect to host bad port 22: Connection refused", 255}
       end)
 
