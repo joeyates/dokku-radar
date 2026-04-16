@@ -77,7 +77,7 @@ Use pattern-matching on the plugin name to call the appropriate
 `DokkuRemote.Commands.*` module directly, with one injected module attribute
 per supported service type. Unknown plugin names raise at runtime.
 
-### `ServicePlugin`
+### `ServicePlugin` [x]
 
 Replace the single `@dokku_cli`-based `services/1` with per-plugin clauses:
 

@@ -1,22 +1,36 @@
 defmodule DokkuRadar.Services.Service do
   @callback links(String.t(), String.t()) :: {:ok, [String.t()]} | {:error, term()}
 
-  @dokku_cli Application.compile_env(:dokku_radar, :"DokkuRadar.DokkuCli", DokkuRadar.DokkuCli)
+  @postgres Application.compile_env(
+              :dokku_radar,
+              :"DokkuRemote.Commands.Postgres",
+              DokkuRemote.Commands.Postgres
+            )
+  @redis Application.compile_env(
+           :dokku_radar,
+           :"DokkuRemote.Commands.Redis",
+           DokkuRemote.Commands.Redis
+         )
 
   require Logger
 
-  def links(plugin, service) do
-    case @dokku_cli.call("#{plugin}:links", [service]) do
-      {:ok, output} ->
-        links = parse_plain_list(output)
-        {:ok, links}
+  def links("postgres", service) do
+    dokku_host = DokkuRadar.DokkuCli.dokku_host!()
 
-      {:error, output, exit_code} ->
-        {:error, {exit_code, output}}
+    case @postgres.links(dokku_host, service) do
+      {:ok, links} -> {:ok, links}
+      {:error, output, exit_code} -> {:error, {exit_code, output}}
     end
   end
 
-  defp parse_plain_list(output) do
-    String.split(output, "\n", trim: true)
+  def links("redis", service) do
+    dokku_host = DokkuRadar.DokkuCli.dokku_host!()
+
+    case @redis.links(dokku_host, service) do
+      {:ok, links} -> {:ok, links}
+      {:error, output, exit_code} -> {:error, {exit_code, output}}
+    end
   end
+
+  def links(other, _service), do: raise("Unknown service plugin: #{other}")
 end
