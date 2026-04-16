@@ -1,5 +1,6 @@
 Mox.defmock(DokkuRemote.Commands.Certs.Mock, for: DokkuRemote.Commands.Certs)
 Mox.defmock(DokkuRemote.Commands.Git.Mock, for: DokkuRemote.Commands.Git)
+Mox.defmock(DokkuRemote.Commands.Ps.Mock, for: DokkuRemote.Commands.Ps)
 Mox.defmock(DokkuRadar.DokkuCli.Mock, for: DokkuRadar.DokkuCli)
 Mox.defmock(DokkuRadar.DockerClient.Mock, for: DokkuRadar.DockerClient)
 Mox.defmock(DokkuRadar.Certs.Mock, for: DokkuRadar.Certs)

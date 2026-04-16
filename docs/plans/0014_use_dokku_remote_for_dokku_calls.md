@@ -45,7 +45,7 @@ first, implement, `mix test`, `mix check-formatted`, commit.
 
 ## Task 3 — `DokkuRadar.Ps.Cache` (inject `DokkuRemote.Commands.Ps`)
 
-- In `DokkuRemote.Commands.Ps`, add a `report/1` function (runs `ps:report`)
+- [x] In `DokkuRemote.Commands.Ps`, add a `report/1` function (runs `ps:report`)
   and `@callback` declarations for `report/1`, `scale/1`, `scale/2`.
 - In `Ps.Cache`, replace `@dokku_cli` with `@commands_ps` injecting
   `DokkuRemote.Commands.Ps`. Replace `@dokku_cli.call("ps:report")` with

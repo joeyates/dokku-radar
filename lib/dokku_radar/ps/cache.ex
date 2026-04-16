@@ -3,7 +3,11 @@ defmodule DokkuRadar.Ps.Cache do
 
   require Logger
 
-  @dokku_cli Application.compile_env(:dokku_radar, :"DokkuRadar.DokkuCli", DokkuRadar.DokkuCli)
+  @commands_ps Application.compile_env(
+                 :dokku_radar,
+                 :"DokkuRemote.Commands.Ps",
+                 DokkuRemote.Commands.Ps
+               )
 
   #################
   # Client API
@@ -49,11 +53,12 @@ defmodule DokkuRadar.Ps.Cache do
 
   @impl DokkuRadar.DokkuCli.Cache
   def load() do
-    case @dokku_cli.call("ps:report") do
-      {:ok, output} ->
-        entries = DokkuRadar.Ps.Report.parse(output)
+    dokku_host = DokkuRadar.DokkuCli.dokku_host!()
+
+    case @commands_ps.report(dokku_host) do
+      {:ok, entries} ->
         app_names = entries |> Enum.map(& &1.app) |> Enum.uniq()
-        scales = load_scales(app_names)
+        scales = load_scales(dokku_host, app_names)
         {:update, %{entries: entries, scales: scales}}
 
       {:error, output, exit_code} ->
@@ -62,12 +67,12 @@ defmodule DokkuRadar.Ps.Cache do
     end
   end
 
-  defp load_scales(app_names) do
+  defp load_scales(dokku_host, app_names) do
     Map.new(app_names, fn app ->
       scale =
-        case @dokku_cli.call("ps:scale", [app]) do
-          {:ok, output} ->
-            DokkuRadar.Ps.Scale.parse(output)
+        case @commands_ps.scale(dokku_host, app) do
+          {:ok, ps_scale} ->
+            ps_scale.proctypes
 
           {:error, output, exit_code} ->
             Logger.warning("Failed to run ps:scale",
