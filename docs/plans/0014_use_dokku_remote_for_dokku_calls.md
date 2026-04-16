@@ -11,7 +11,7 @@ first, implement, `mix test`, `mix check-formatted`, commit.
 
 ## Task 1 — `DokkuRadar.Git.Report` (inject `DokkuRemote.Commands.Git`)
 
-- In `DokkuRemote.Commands.Git`, add
+- [x] In `DokkuRemote.Commands.Git`, add
   `@callback report(String.t()) :: {:ok, reports()} | {:error, any(), any()}`.
 - In `Git.Report`, add
   `@commands_git Application.compile_env(:dokku_radar, :"DokkuRemote.Commands.Git", DokkuRemote.Commands.Git)`

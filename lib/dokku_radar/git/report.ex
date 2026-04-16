@@ -1,9 +1,15 @@
 defmodule DokkuRadar.Git.Report do
+  @commands_git Application.compile_env(
+                  :dokku_radar,
+                  :"DokkuRemote.Commands.Git",
+                  DokkuRemote.Commands.Git
+                )
+
   @callback app_timestamps() :: {:ok, %{String.t() => non_neg_integer()}} | {:error, term()}
   def app_timestamps() do
     dokku_host = DokkuRadar.DokkuCli.dokku_host!()
 
-    case DokkuRemote.Commands.Git.report(dokku_host) do
+    case @commands_git.report(dokku_host) do
       {:ok, report} ->
         timestamps =
           report
