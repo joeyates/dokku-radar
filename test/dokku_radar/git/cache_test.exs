@@ -8,13 +8,6 @@ defmodule DokkuRadar.Git.CacheTest do
   setup :set_mox_global
   setup :verify_on_exit!
 
-  @git_report_output """
-  =====> blog-cms git information
-         Git last updated at:          1775125215
-  =====> my-api git information
-         Git last updated at:          1775200000
-  """
-
   @base_opts [name: nil, refresh_interval: nil]
 
   defp wait_for_ready(pid) do
@@ -25,8 +18,8 @@ defmodule DokkuRadar.Git.CacheTest do
   end
 
   setup do
-    expect(DokkuRadar.DokkuCli.Mock, :call, fn "git:report" ->
-      {:ok, @git_report_output}
+    expect(DokkuRadar.Git.Report.Mock, :app_timestamps, fn ->
+      {:ok, %{"blog-cms" => 1_775_125_215, "my-api" => 1_775_200_000}}
     end)
 
     start_supervised!({Task.Supervisor, name: DokkuRadar.TaskSupervisor})
@@ -53,7 +46,7 @@ defmodule DokkuRadar.Git.CacheTest do
 
   describe "when DokkuCli fails" do
     setup do
-      expect(DokkuRadar.DokkuCli.Mock, :call, fn "git:report" ->
+      expect(DokkuRadar.Git.Report.Mock, :app_timestamps, fn ->
         {:error, "ssh: Connection refused", 255}
       end)
 

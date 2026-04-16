@@ -22,3 +22,20 @@ config app_name, DokkuRadar.DokkuCli,
   ssh_certificate_path: ssh_certificate_path
 
 config app_name, dokku_host: config(app_name, port: port)
+
+config :dokku_remote, DokkuRemote.Ssh, %{
+  dokku_host => %{
+    "dokku" => [
+      "-i",
+      ssh_certificate_path,
+      "-o",
+      "BatchMode=yes",
+      "-o",
+      "StrictHostKeyChecking=no",
+      "-o",
+      "UserKnownHostsFile=/dev/null",
+      "-o",
+      "LogLevel=ERROR"
+    ]
+  }
+}

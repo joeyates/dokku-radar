@@ -1,26 +1,22 @@
 defmodule DokkuRadar.Git.Report do
-  @doc """
-  Parses multi-app `git:report` output and returns a map of app names to
-  their last-deploy Unix timestamps.
-  """
-  def parse(output) do
-    output
-    |> String.split("\n", trim: true)
-    |> Enum.reduce({nil, %{}}, &parse_line/2)
-    |> elem(1)
-  end
+  @callback app_timestamps() :: {:ok, %{String.t() => non_neg_integer()}} | {:error, term()}
+  def app_timestamps() do
+    dokku_host = DokkuRadar.DokkuCli.dokku_host!()
 
-  defp parse_line("=====> " <> rest, {_current_app, acc}) do
-    app_name = rest |> String.split(" ") |> List.first()
-    {app_name, acc}
-  end
+    case DokkuRemote.Commands.Git.report(dokku_host) do
+      {:ok, report} ->
+        timestamps =
+          report
+          |> Map.values()
+          |> Enum.map(fn app_report ->
+            {app_report.app_name, app_report.last_updated_at}
+          end)
+          |> Map.new()
 
-  defp parse_line(line, {current_app, acc}) when is_binary(current_app) do
-    case Regex.run(~r/Git last updated at:\s+(\d+)/, line) do
-      [_, ts_str] -> {current_app, Map.put(acc, current_app, String.to_integer(ts_str))}
-      nil -> {current_app, acc}
+        {:ok, timestamps}
+
+      {:error, output, exit_code} ->
+        {:error, output, exit_code}
     end
   end
-
-  defp parse_line(_line, {nil, acc}), do: {nil, acc}
 end

@@ -3,7 +3,7 @@ defmodule DokkuRadar.Git.Cache do
 
   require Logger
 
-  @dokku_cli Application.compile_env(:dokku_radar, :"DokkuRadar.DokkuCli", DokkuRadar.DokkuCli)
+  @git Application.compile_env(:dokku_radar, :"DokkuRadar.Git.Report", DokkuRadar.Git.Report)
 
   #################
   # Client API
@@ -34,12 +34,12 @@ defmodule DokkuRadar.Git.Cache do
 
   @impl DokkuRadar.DokkuCli.Cache
   def load() do
-    case @dokku_cli.call("git:report") do
-      {:ok, output} ->
-        {:update, DokkuRadar.Git.Report.parse(output)}
+    case @git.app_timestamps() do
+      {:ok, timestamps} ->
+        {:update, timestamps}
 
       {:error, output, exit_code} ->
-        Logger.warning("Failed to run git:report", exit_code: exit_code, output: output)
+        Logger.warning("Failed to fetch git report", exit_code: exit_code, output: output)
         {:error, {output, exit_code}}
     end
   end

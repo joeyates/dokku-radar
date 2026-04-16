@@ -20,8 +20,8 @@ defmodule DokkuRadar.DokkuCli do
   end
 
   defp ssh_args(command) do
-    host = dokku_host()
-    ssh_certificate_path = ssh_certificate_path()
+    host = dokku_host!()
+    ssh_certificate_path = ssh_certificate_path!()
 
     [
       "-i",
@@ -43,11 +43,11 @@ defmodule DokkuRadar.DokkuCli do
     Application.fetch_env!(:dokku_radar, __MODULE__)
   end
 
-  defp dokku_host() do
+  def dokku_host!() do
     Keyword.fetch!(module_env!(), :dokku_host)
   end
 
-  defp ssh_certificate_path() do
+  defp ssh_certificate_path!() do
     Keyword.fetch!(module_env!(), :ssh_certificate_path)
   end
 end
