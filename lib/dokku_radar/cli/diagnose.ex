@@ -1,15 +1,27 @@
 defmodule DokkuRadar.CLI.Diagnose do
   alias DokkuRemote.App
 
+  @ssh_host_dir "/var/lib/dokku/data/storage/dokku-radar/.ssh"
+  @container_dir "/data/.ssh"
+  @private_key_path "#{@ssh_host_dir}/id_ed25519"
+
   @commands_ps Application.compile_env(
                  :dokku_radar,
                  :"DokkuRemote.Commands.Ps",
                  DokkuRemote.Commands.Ps
                )
 
+  @root_command Application.compile_env(
+                  :dokku_radar,
+                  :"DokkuRemote.Root.Command",
+                  DokkuRemote.Root.Command
+                )
+
   def run(%App{} = app) do
     checks = [
-      fn -> check_app_running(app) end
+      fn -> check_app_running(app) end,
+      fn -> check_private_key_mount(app) end,
+      fn -> check_private_key_file(app) end
     ]
 
     Enum.each(checks, fn check ->
@@ -44,6 +56,37 @@ defmodule DokkuRadar.CLI.Diagnose do
 
       {:error, _output, _exit_code} ->
         {:error, "App running: could not retrieve ps report"}
+    end
+  end
+
+  defp check_private_key_mount(%App{dokku_host: dokku_host, dokku_app: dokku_app}) do
+    case @root_command.run(
+           dokku_host,
+           "dokku",
+           ["storage:report", dokku_app, "--storage-run-mounts"],
+           []
+         ) do
+      {:ok, output} ->
+        mount = "#{@ssh_host_dir}:#{@container_dir}"
+
+        if String.contains?(output, mount) do
+          {:ok, "Private key: mount"}
+        else
+          {:error, "Private key: mount not configured"}
+        end
+
+      {:error, _output, _exit_code} ->
+        {:error, "Private key: mount: could not retrieve storage report"}
+    end
+  end
+
+  defp check_private_key_file(%App{dokku_host: dokku_host}) do
+    case @root_command.run(dokku_host, "test", ["-f", @private_key_path], []) do
+      {:ok, _output} ->
+        {:ok, "Private key: file"}
+
+      {:error, _output, _exit_code} ->
+        {:error, "Private key: file not found at #{@private_key_path}"}
     end
   end
 end

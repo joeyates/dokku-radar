@@ -13,6 +13,162 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
 
   setup :verify_on_exit!
 
+  @ssh_host_dir "/var/lib/dokku/data/storage/dokku-radar/.ssh"
+  @container_dir "/data/.ssh"
+  @private_key_path "#{@ssh_host_dir}/id_ed25519"
+
+  describe "run/1 private key" do
+    test "prints a passing line when the mount is configured and the key file exists" do
+      expect(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
+        {:ok,
+         [
+           %{
+             app: "dokku-radar",
+             process_type: "web",
+             process_index: 1,
+             state: "running",
+             cid: "abc"
+           }
+         ]}
+      end)
+
+      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
+                                                     "dokku",
+                                                     [
+                                                       "storage:report",
+                                                       @dokku_app,
+                                                       "--storage-run-mounts"
+                                                     ],
+                                                     [] ->
+        {:ok, "#{@ssh_host_dir}:#{@container_dir}"}
+      end)
+
+      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
+                                                     "test",
+                                                     ["-f", @private_key_path],
+                                                     [] ->
+        {:ok, ""}
+      end)
+
+      output = capture_io(fn -> Diagnose.run(@app) end)
+      assert output =~ "✅"
+      assert output =~ "Private key: mount"
+      assert output =~ "✅"
+      assert output =~ "Private key: file"
+    end
+
+    test "prints a failing line when the mount is not configured" do
+      expect(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
+        {:ok,
+         [
+           %{
+             app: "dokku-radar",
+             process_type: "web",
+             process_index: 1,
+             state: "running",
+             cid: "abc"
+           }
+         ]}
+      end)
+
+      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
+                                                     "dokku",
+                                                     [
+                                                       "storage:report",
+                                                       @dokku_app,
+                                                       "--storage-run-mounts"
+                                                     ],
+                                                     [] ->
+        {:ok, ""}
+      end)
+
+      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
+                                                     "test",
+                                                     ["-f", @private_key_path],
+                                                     [] ->
+        {:ok, ""}
+      end)
+
+      output = capture_io(fn -> Diagnose.run(@app) end)
+      assert output =~ "❌"
+      assert output =~ "Private key: mount"
+    end
+
+    test "prints a failing line when the storage report command fails" do
+      expect(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
+        {:ok,
+         [
+           %{
+             app: "dokku-radar",
+             process_type: "web",
+             process_index: 1,
+             state: "running",
+             cid: "abc"
+           }
+         ]}
+      end)
+
+      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
+                                                     "dokku",
+                                                     [
+                                                       "storage:report",
+                                                       @dokku_app,
+                                                       "--storage-run-mounts"
+                                                     ],
+                                                     [] ->
+        {:error, "ssh: Connection refused", 255}
+      end)
+
+      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
+                                                     "test",
+                                                     ["-f", @private_key_path],
+                                                     [] ->
+        {:ok, ""}
+      end)
+
+      output = capture_io(fn -> Diagnose.run(@app) end)
+      assert output =~ "❌"
+      assert output =~ "Private key: mount"
+    end
+
+    test "prints a failing line when the key file does not exist" do
+      expect(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
+        {:ok,
+         [
+           %{
+             app: "dokku-radar",
+             process_type: "web",
+             process_index: 1,
+             state: "running",
+             cid: "abc"
+           }
+         ]}
+      end)
+
+      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
+                                                     "dokku",
+                                                     [
+                                                       "storage:report",
+                                                       @dokku_app,
+                                                       "--storage-run-mounts"
+                                                     ],
+                                                     [] ->
+        {:ok, "#{@ssh_host_dir}:#{@container_dir}"}
+      end)
+
+      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
+                                                     "test",
+                                                     ["-f", @private_key_path],
+                                                     [] ->
+        {:error, "", 1}
+      end)
+
+      output = capture_io(fn -> Diagnose.run(@app) end)
+      assert output =~ "❌"
+      assert output =~ "Private key: file"
+    end
+  end
+
   describe "run/1" do
     test "prints a passing line when all web processes are running" do
       expect(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
@@ -26,6 +182,10 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
              cid: "abc"
            }
          ]}
+      end)
+
+      stub(DokkuRemote.Root.Command.Mock, :run, fn _host, _cmd, _params, _opts ->
+        {:ok, ""}
       end)
 
       output = capture_io(fn -> Diagnose.run(@app) end)
@@ -47,6 +207,10 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
          ]}
       end)
 
+      stub(DokkuRemote.Root.Command.Mock, :run, fn _host, _cmd, _params, _opts ->
+        {:ok, ""}
+      end)
+
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "❌"
       assert output =~ "App running"
@@ -55,6 +219,10 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
     test "prints a failing line when ps report fails" do
       expect(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
         {:error, "ssh: Connection refused", 255}
+      end)
+
+      stub(DokkuRemote.Root.Command.Mock, :run, fn _host, _cmd, _params, _opts ->
+        {:ok, ""}
       end)
 
       output = capture_io(fn -> Diagnose.run(@app) end)

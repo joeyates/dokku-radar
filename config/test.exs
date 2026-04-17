@@ -7,6 +7,7 @@ config app_name, port: 9876
 config app_name,
   System: System.Mock,
   "DokkuRemote.Commands.Certs": DokkuRemote.Commands.Certs.Mock,
+  "DokkuRemote.Root.Command": DokkuRemote.Root.Command.Mock,
   "DokkuRemote.Commands.Git": DokkuRemote.Commands.Git.Mock,
   "DokkuRemote.Commands.Plugin": DokkuRemote.Commands.Plugin.Mock,
   "DokkuRemote.Commands.Postgres": DokkuRemote.Commands.Postgres.Mock,
