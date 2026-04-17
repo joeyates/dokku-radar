@@ -19,7 +19,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
 
   describe "run/1" do
     test "prints a passing line when all web processes are running" do
-      expect(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
+      stub(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
         {:ok,
          [
            %{
@@ -41,7 +41,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
     end
 
     test "prints a failing line when a web process is not running" do
-      expect(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
+      stub(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
         {:ok,
          [
            %{
@@ -64,7 +64,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
     end
 
     test "prints a failing line when ps report fails" do
-      expect(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
+      stub(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
         {:error, "ssh: Connection refused", 255}
       end)
 
@@ -142,6 +142,19 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
         {:ok, "monitoring"}
       end)
 
+      expect(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
+        {:ok,
+         [
+           %{
+             app: "prometheus",
+             process_type: "web",
+             process_index: 1,
+             state: "running",
+             cid: "def"
+           }
+         ]}
+      end)
+
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "Checking private key directory is mounted in container... ✅"
     end
@@ -209,6 +222,19 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
                                                      ],
                                                      [] ->
         {:ok, "monitoring"}
+      end)
+
+      expect(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
+        {:ok,
+         [
+           %{
+             app: "prometheus",
+             process_type: "web",
+             process_index: 1,
+             state: "running",
+             cid: "def"
+           }
+         ]}
       end)
 
       output = capture_io(fn -> Diagnose.run(@app) end)
@@ -281,6 +307,19 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
         {:ok, "monitoring"}
       end)
 
+      expect(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
+        {:ok,
+         [
+           %{
+             app: "prometheus",
+             process_type: "web",
+             process_index: 1,
+             state: "running",
+             cid: "def"
+           }
+         ]}
+      end)
+
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "❌"
       assert output =~ "Private key: mount"
@@ -351,6 +390,19 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
         {:ok, "monitoring"}
       end)
 
+      expect(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
+        {:ok,
+         [
+           %{
+             app: "prometheus",
+             process_type: "web",
+             process_index: 1,
+             state: "running",
+             cid: "def"
+           }
+         ]}
+      end)
+
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "Checking private key is installed on host... ✅"
     end
@@ -418,6 +470,19 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
                                                      ],
                                                      [] ->
         {:ok, "monitoring"}
+      end)
+
+      expect(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
+        {:ok,
+         [
+           %{
+             app: "prometheus",
+             process_type: "web",
+             process_index: 1,
+             state: "running",
+             cid: "def"
+           }
+         ]}
       end)
 
       output = capture_io(fn -> Diagnose.run(@app) end)
@@ -634,6 +699,98 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "❌"
       assert output =~ "dokku-radar"
+    end
+
+    test "prints a passing line when all prometheus web processes are running" do
+      expect(DokkuRemote.Commands.Ps.Mock, :report, 2, fn host ->
+        case host do
+          @dokku_host ->
+            {:ok,
+             [
+               %{
+                 app: "dokku-radar",
+                 process_type: "web",
+                 process_index: 1,
+                 state: "running",
+                 cid: "abc"
+               },
+               %{
+                 app: "prometheus",
+                 process_type: "web",
+                 process_index: 1,
+                 state: "running",
+                 cid: "def"
+               }
+             ]}
+        end
+      end)
+
+      stub(DokkuRemote.Root.Command.Mock, :run, fn _host, _cmd, _params, _opts ->
+        {:ok, "monitoring"}
+      end)
+
+      output = capture_io(fn -> Diagnose.run(@app) end)
+      assert output =~ "Checking prometheus is running... ✅"
+    end
+
+    test "prints a failing line when a prometheus web process is not running" do
+      expect(DokkuRemote.Commands.Ps.Mock, :report, 2, fn host ->
+        case host do
+          @dokku_host ->
+            {:ok,
+             [
+               %{
+                 app: "dokku-radar",
+                 process_type: "web",
+                 process_index: 1,
+                 state: "running",
+                 cid: "abc"
+               },
+               %{
+                 app: "prometheus",
+                 process_type: "web",
+                 process_index: 1,
+                 state: "exited",
+                 cid: "def"
+               }
+             ]}
+        end
+      end)
+
+      stub(DokkuRemote.Root.Command.Mock, :run, fn _host, _cmd, _params, _opts ->
+        {:ok, "monitoring"}
+      end)
+
+      output = capture_io(fn -> Diagnose.run(@app) end)
+      assert output =~ "❌"
+      assert output =~ "Prometheus running"
+    end
+
+    test "prints a failing line when the prometheus ps report fails" do
+      expect(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
+        {:ok,
+         [
+           %{
+             app: "dokku-radar",
+             process_type: "web",
+             process_index: 1,
+             state: "running",
+             cid: "abc"
+           }
+         ]}
+      end)
+
+      expect(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
+        {:error, "ssh: Connection refused", 255}
+      end)
+
+      stub(DokkuRemote.Root.Command.Mock, :run, fn _host, _cmd, _params, _opts ->
+        {:ok, "monitoring"}
+      end)
+
+      output = capture_io(fn -> Diagnose.run(@app) end)
+      assert output =~ "❌"
+      assert output =~ "Prometheus running"
     end
   end
 end

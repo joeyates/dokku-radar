@@ -39,7 +39,11 @@ defmodule DokkuRadar.CLI.Diagnose do
           message: "private key is installed on host",
           function: fn -> check_private_key_file(app) end
         }
-      ] ++ network_checks
+      ] ++
+        network_checks ++
+        [
+          %{message: "prometheus is running", function: fn -> check_prometheus_running(app) end}
+        ]
 
     Enum.each(checks, fn check ->
       IO.write("Checking #{check.message}... ")
@@ -128,6 +132,31 @@ defmodule DokkuRadar.CLI.Diagnose do
 
       {:error, _output, _exit_code} ->
         {:error, "Network: could not retrieve network report for #{target_app}"}
+    end
+  end
+
+  defp check_prometheus_running(%App{dokku_host: dokku_host}) do
+    case @commands_ps.report(dokku_host) do
+      {:ok, entries} ->
+        web_processes =
+          Enum.filter(entries, &(&1.app == "prometheus" and &1.process_type == "web"))
+
+        all_running? = Enum.all?(web_processes, &(&1.state == "running"))
+
+        if all_running? do
+          {:ok, nil}
+        else
+          not_running =
+            web_processes
+            |> Enum.reject(&(&1.state == "running"))
+            |> Enum.map(&"web.#{&1.process_index} is #{&1.state}")
+            |> Enum.join(", ")
+
+          {:error, "Prometheus running: #{not_running}"}
+        end
+
+      {:error, _output, _exit_code} ->
+        {:error, "Prometheus running: could not retrieve ps report"}
     end
   end
 end
