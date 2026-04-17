@@ -51,7 +51,7 @@ defmodule DokkuRadar.Services.ServicePluginsTest do
         {:error, "ssh: connect to host bad port 22: Connection refused", 255}
       end)
 
-      assert {:error, _exit_code, _reason} = ServicePlugins.list()
+      assert {:error, _reason} = ServicePlugins.list()
     end
   end
 end
