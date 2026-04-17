@@ -247,3 +247,17 @@ Replace `DokkuRadar.DokkuCli` (the bespoke SSH wrapper) with the already-availab
 
 - `DokkuRemote` is already a dependency.
 - All `@dokku_cli.call(...)` usages in `Certs.Cache`, `Git.Cache`, `Ps.Cache`, `Services.Cache`, `Services.ServicePlugin`, `Services.ServicePlugins`, and `Services.Service` should be replaced with appropriate `DokkuRemote.Commands.*` calls.
+
+# Create a Diagnostic CLI
+
+Status: [ ]
+
+## Description
+
+Implement `bin/dokku-radar.exs diagnose` to be used remotely to
+check the correct functioning and installation of the project.
+
+## Technical Specifics
+
+- Use `DokkuRemote.Commands` calls to fetch data from the deployed project.
+- Use docs/system-checks.md` and `docs/troubleshooting.md` for a basis of what to check.
