@@ -78,100 +78,18 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
     end
 
     test "prints a passing line when the private key mount is configured" do
-      expect(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
-        {:ok,
-         [
-           %{
-             app: "dokku-radar",
-             process_type: "web",
-             process_index: 1,
-             state: "running",
-             cid: "abc"
-           }
-         ]}
-      end)
-
-      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
-                                                     "dokku",
-                                                     [
-                                                       "storage:report",
-                                                       @dokku_app,
-                                                       "--storage-run-mounts"
-                                                     ],
-                                                     [] ->
-        {:ok, "#{@ssh_host_dir}:#{@container_dir}"}
-      end)
-
-      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
-                                                     "test",
-                                                     ["-f", @private_key_path],
-                                                     [] ->
-        {:ok, ""}
-      end)
-
-      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
-                                                     "dokku",
-                                                     [
-                                                       "network:report",
-                                                       "dokku-radar",
-                                                       "--network-attach-post-deploy"
-                                                     ],
-                                                     [] ->
-        {:ok, "monitoring"}
-      end)
-
-      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
-                                                     "dokku",
-                                                     [
-                                                       "network:report",
-                                                       "prometheus",
-                                                       "--network-attach-post-deploy"
-                                                     ],
-                                                     [] ->
-        {:ok, "monitoring"}
-      end)
-
-      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
-                                                     "dokku",
-                                                     [
-                                                       "network:report",
-                                                       "grafana",
-                                                       "--network-attach-post-deploy"
-                                                     ],
-                                                     [] ->
-        {:ok, "monitoring"}
-      end)
-
-      expect(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
-        {:ok,
-         [
-           %{
-             app: "prometheus",
-             process_type: "web",
-             process_index: 1,
-             state: "running",
-             cid: "def"
-           }
-         ]}
-      end)
+      expect_app_running()
+      expect_key_mount_ok()
+      expect_key_file_exists()
+      expect_all_networks_monitoring()
+      expect_prometheus_running()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "Checking private key directory is mounted in container... ✅"
     end
 
     test "prints a failing line when the mount is not configured" do
-      expect(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
-        {:ok,
-         [
-           %{
-             app: "dokku-radar",
-             process_type: "web",
-             process_index: 1,
-             state: "running",
-             cid: "abc"
-           }
-         ]}
-      end)
+      expect_app_running()
 
       expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
                                                      "dokku",
@@ -184,58 +102,9 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
         {:ok, ""}
       end)
 
-      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
-                                                     "test",
-                                                     ["-f", @private_key_path],
-                                                     [] ->
-        {:ok, ""}
-      end)
-
-      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
-                                                     "dokku",
-                                                     [
-                                                       "network:report",
-                                                       "dokku-radar",
-                                                       "--network-attach-post-deploy"
-                                                     ],
-                                                     [] ->
-        {:ok, "monitoring"}
-      end)
-
-      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
-                                                     "dokku",
-                                                     [
-                                                       "network:report",
-                                                       "prometheus",
-                                                       "--network-attach-post-deploy"
-                                                     ],
-                                                     [] ->
-        {:ok, "monitoring"}
-      end)
-
-      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
-                                                     "dokku",
-                                                     [
-                                                       "network:report",
-                                                       "grafana",
-                                                       "--network-attach-post-deploy"
-                                                     ],
-                                                     [] ->
-        {:ok, "monitoring"}
-      end)
-
-      expect(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
-        {:ok,
-         [
-           %{
-             app: "prometheus",
-             process_type: "web",
-             process_index: 1,
-             state: "running",
-             cid: "def"
-           }
-         ]}
-      end)
+      expect_key_file_exists()
+      expect_all_networks_monitoring()
+      expect_prometheus_running()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "❌"
@@ -243,18 +112,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
     end
 
     test "prints a failing line when the storage report command fails" do
-      expect(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
-        {:ok,
-         [
-           %{
-             app: "dokku-radar",
-             process_type: "web",
-             process_index: 1,
-             state: "running",
-             cid: "abc"
-           }
-         ]}
-      end)
+      expect_app_running()
 
       expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
                                                      "dokku",
@@ -267,58 +125,9 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
         {:error, "ssh: Connection refused", 255}
       end)
 
-      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
-                                                     "test",
-                                                     ["-f", @private_key_path],
-                                                     [] ->
-        {:ok, ""}
-      end)
-
-      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
-                                                     "dokku",
-                                                     [
-                                                       "network:report",
-                                                       "dokku-radar",
-                                                       "--network-attach-post-deploy"
-                                                     ],
-                                                     [] ->
-        {:ok, "monitoring"}
-      end)
-
-      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
-                                                     "dokku",
-                                                     [
-                                                       "network:report",
-                                                       "prometheus",
-                                                       "--network-attach-post-deploy"
-                                                     ],
-                                                     [] ->
-        {:ok, "monitoring"}
-      end)
-
-      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
-                                                     "dokku",
-                                                     [
-                                                       "network:report",
-                                                       "grafana",
-                                                       "--network-attach-post-deploy"
-                                                     ],
-                                                     [] ->
-        {:ok, "monitoring"}
-      end)
-
-      expect(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
-        {:ok,
-         [
-           %{
-             app: "prometheus",
-             process_type: "web",
-             process_index: 1,
-             state: "running",
-             cid: "def"
-           }
-         ]}
-      end)
+      expect_key_file_exists()
+      expect_all_networks_monitoring()
+      expect_prometheus_running()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "❌"
@@ -326,111 +135,19 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
     end
 
     test "prints a passing line when the key file exists" do
-      expect(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
-        {:ok,
-         [
-           %{
-             app: "dokku-radar",
-             process_type: "web",
-             process_index: 1,
-             state: "running",
-             cid: "abc"
-           }
-         ]}
-      end)
-
-      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
-                                                     "dokku",
-                                                     [
-                                                       "storage:report",
-                                                       @dokku_app,
-                                                       "--storage-run-mounts"
-                                                     ],
-                                                     [] ->
-        {:ok, "#{@ssh_host_dir}:#{@container_dir}"}
-      end)
-
-      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
-                                                     "test",
-                                                     ["-f", @private_key_path],
-                                                     [] ->
-        {:ok, ""}
-      end)
-
-      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
-                                                     "dokku",
-                                                     [
-                                                       "network:report",
-                                                       "dokku-radar",
-                                                       "--network-attach-post-deploy"
-                                                     ],
-                                                     [] ->
-        {:ok, "monitoring"}
-      end)
-
-      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
-                                                     "dokku",
-                                                     [
-                                                       "network:report",
-                                                       "prometheus",
-                                                       "--network-attach-post-deploy"
-                                                     ],
-                                                     [] ->
-        {:ok, "monitoring"}
-      end)
-
-      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
-                                                     "dokku",
-                                                     [
-                                                       "network:report",
-                                                       "grafana",
-                                                       "--network-attach-post-deploy"
-                                                     ],
-                                                     [] ->
-        {:ok, "monitoring"}
-      end)
-
-      expect(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
-        {:ok,
-         [
-           %{
-             app: "prometheus",
-             process_type: "web",
-             process_index: 1,
-             state: "running",
-             cid: "def"
-           }
-         ]}
-      end)
+      expect_app_running()
+      expect_key_mount_ok()
+      expect_key_file_exists()
+      expect_all_networks_monitoring()
+      expect_prometheus_running()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "Checking private key is installed on host... ✅"
     end
 
     test "prints a failing line when the key file does not exist" do
-      expect(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
-        {:ok,
-         [
-           %{
-             app: "dokku-radar",
-             process_type: "web",
-             process_index: 1,
-             state: "running",
-             cid: "abc"
-           }
-         ]}
-      end)
-
-      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
-                                                     "dokku",
-                                                     [
-                                                       "storage:report",
-                                                       @dokku_app,
-                                                       "--storage-run-mounts"
-                                                     ],
-                                                     [] ->
-        {:ok, "#{@ssh_host_dir}:#{@container_dir}"}
-      end)
+      expect_app_running()
+      expect_key_mount_ok()
 
       expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
                                                      "test",
@@ -439,51 +156,8 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
         {:error, "", 1}
       end)
 
-      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
-                                                     "dokku",
-                                                     [
-                                                       "network:report",
-                                                       "dokku-radar",
-                                                       "--network-attach-post-deploy"
-                                                     ],
-                                                     [] ->
-        {:ok, "monitoring"}
-      end)
-
-      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
-                                                     "dokku",
-                                                     [
-                                                       "network:report",
-                                                       "prometheus",
-                                                       "--network-attach-post-deploy"
-                                                     ],
-                                                     [] ->
-        {:ok, "monitoring"}
-      end)
-
-      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
-                                                     "dokku",
-                                                     [
-                                                       "network:report",
-                                                       "grafana",
-                                                       "--network-attach-post-deploy"
-                                                     ],
-                                                     [] ->
-        {:ok, "monitoring"}
-      end)
-
-      expect(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
-        {:ok,
-         [
-           %{
-             app: "prometheus",
-             process_type: "web",
-             process_index: 1,
-             state: "running",
-             cid: "def"
-           }
-         ]}
-      end)
+      expect_all_networks_monitoring()
+      expect_prometheus_running()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "❌"
@@ -504,56 +178,9 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
          ]}
       end)
 
-      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
-                                                     "dokku",
-                                                     [
-                                                       "storage:report",
-                                                       @dokku_app,
-                                                       "--storage-run-mounts"
-                                                     ],
-                                                     [] ->
-        {:ok, "#{@ssh_host_dir}:#{@container_dir}"}
-      end)
-
-      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
-                                                     "test",
-                                                     ["-f", @private_key_path],
-                                                     [] ->
-        {:ok, ""}
-      end)
-
-      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
-                                                     "dokku",
-                                                     [
-                                                       "network:report",
-                                                       "dokku-radar",
-                                                       "--network-attach-post-deploy"
-                                                     ],
-                                                     [] ->
-        {:ok, "monitoring"}
-      end)
-
-      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
-                                                     "dokku",
-                                                     [
-                                                       "network:report",
-                                                       "prometheus",
-                                                       "--network-attach-post-deploy"
-                                                     ],
-                                                     [] ->
-        {:ok, "monitoring"}
-      end)
-
-      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
-                                                     "dokku",
-                                                     [
-                                                       "network:report",
-                                                       "grafana",
-                                                       "--network-attach-post-deploy"
-                                                     ],
-                                                     [] ->
-        {:ok, "monitoring"}
-      end)
+      expect_key_mount_ok()
+      expect_key_file_exists()
+      expect_all_networks_monitoring()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "Checking dokku-radar is on monitoring network... ✅"
@@ -575,23 +202,8 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
          ]}
       end)
 
-      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
-                                                     "dokku",
-                                                     [
-                                                       "storage:report",
-                                                       @dokku_app,
-                                                       "--storage-run-mounts"
-                                                     ],
-                                                     [] ->
-        {:ok, "#{@ssh_host_dir}:#{@container_dir}"}
-      end)
-
-      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
-                                                     "test",
-                                                     ["-f", @private_key_path],
-                                                     [] ->
-        {:ok, ""}
-      end)
+      expect_key_mount_ok()
+      expect_key_file_exists()
 
       expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
                                                      "dokku",
@@ -645,23 +257,8 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
          ]}
       end)
 
-      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
-                                                     "dokku",
-                                                     [
-                                                       "storage:report",
-                                                       @dokku_app,
-                                                       "--storage-run-mounts"
-                                                     ],
-                                                     [] ->
-        {:ok, "#{@ssh_host_dir}:#{@container_dir}"}
-      end)
-
-      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
-                                                     "test",
-                                                     ["-f", @private_key_path],
-                                                     [] ->
-        {:ok, ""}
-      end)
+      expect_key_mount_ok()
+      expect_key_file_exists()
 
       expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
                                                      "dokku",
@@ -792,5 +389,70 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
       assert output =~ "❌"
       assert output =~ "Prometheus running"
     end
+  end
+
+  defp expect_app_running() do
+    expect(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
+      {:ok,
+       [
+         %{
+           app: "dokku-radar",
+           process_type: "web",
+           process_index: 1,
+           state: "running",
+           cid: "abc"
+         }
+       ]}
+    end)
+  end
+
+  defp expect_key_mount_ok() do
+    expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
+                                                   "dokku",
+                                                   [
+                                                     "storage:report",
+                                                     @dokku_app,
+                                                     "--storage-run-mounts"
+                                                   ],
+                                                   [] ->
+      {:ok, "#{@ssh_host_dir}:#{@container_dir}"}
+    end)
+  end
+
+  defp expect_key_file_exists() do
+    expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
+                                                   "test",
+                                                   ["-f", @private_key_path],
+                                                   [] ->
+      {:ok, ""}
+    end)
+  end
+
+  defp expect_all_networks_monitoring() do
+    expect(DokkuRemote.Root.Command.Mock, :run, 3, fn @dokku_host,
+                                                      "dokku",
+                                                      [
+                                                        "network:report",
+                                                        _,
+                                                        "--network-attach-post-deploy"
+                                                      ],
+                                                      [] ->
+      {:ok, "monitoring"}
+    end)
+  end
+
+  defp expect_prometheus_running() do
+    expect(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
+      {:ok,
+       [
+         %{
+           app: "prometheus",
+           process_type: "web",
+           process_index: 1,
+           state: "running",
+           cid: "def"
+         }
+       ]}
+    end)
   end
 end
