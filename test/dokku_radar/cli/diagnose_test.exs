@@ -84,6 +84,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
       expect_all_networks_monitoring()
       expect_prometheus_running()
       expect_grafana_running()
+      expect_health_ok()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "Checking private key directory is mounted in container... ✅"
@@ -107,6 +108,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
       expect_all_networks_monitoring()
       expect_prometheus_running()
       expect_grafana_running()
+      expect_health_ok()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "❌"
@@ -131,6 +133,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
       expect_all_networks_monitoring()
       expect_prometheus_running()
       expect_grafana_running()
+      expect_health_ok()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "❌"
@@ -144,6 +147,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
       expect_all_networks_monitoring()
       expect_prometheus_running()
       expect_grafana_running()
+      expect_health_ok()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "Checking private key is installed on host... ✅"
@@ -163,6 +167,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
       expect_all_networks_monitoring()
       expect_prometheus_running()
       expect_grafana_running()
+      expect_health_ok()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "❌"
@@ -186,6 +191,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
       expect_key_mount_ok()
       expect_key_file_exists()
       expect_all_networks_monitoring()
+      expect_health_ok()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "Checking dokku-radar is on monitoring network... ✅"
@@ -243,6 +249,8 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
         {:ok, "monitoring"}
       end)
 
+      expect_health_ok()
+
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "❌"
       assert output =~ "prometheus"
@@ -297,6 +305,8 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
                                                      [] ->
         {:ok, "monitoring"}
       end)
+
+      expect_health_ok()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "❌"
@@ -474,6 +484,104 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
       assert output =~ "❌"
       assert output =~ "Grafana running"
     end
+
+    test "prints a passing line when health endpoint responds ok" do
+      stub(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
+        {:ok,
+         [
+           %{
+             app: "dokku-radar",
+             process_type: "web",
+             process_index: 1,
+             state: "running",
+             cid: "abc"
+           }
+         ]}
+      end)
+
+      stub(DokkuRemote.Root.Command.Mock, :run, fn _host, _cmd, _params, _opts ->
+        {:ok, "ok"}
+      end)
+
+      output = capture_io(fn -> Diagnose.run(@app) end)
+      assert output =~ "Checking health endpoint responds ok... ✅"
+    end
+
+    test "prints a failing line when health endpoint returns unexpected output" do
+      stub(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
+        {:ok,
+         [
+           %{
+             app: "dokku-radar",
+             process_type: "web",
+             process_index: 1,
+             state: "running",
+             cid: "abc"
+           }
+         ]}
+      end)
+
+      expect_key_mount_ok()
+      expect_key_file_exists()
+      expect_all_networks_monitoring()
+
+      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
+                                                     "dokku",
+                                                     [
+                                                       "enter",
+                                                       @dokku_app,
+                                                       "web",
+                                                       "--",
+                                                       "wget",
+                                                       "-qO-",
+                                                       "http://127.0.0.1:9110/health"
+                                                     ],
+                                                     [] ->
+        {:ok, "error"}
+      end)
+
+      output = capture_io(fn -> Diagnose.run(@app) end)
+      assert output =~ "❌"
+      assert output =~ "Health"
+    end
+
+    test "prints a failing line when the health enter command fails" do
+      stub(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
+        {:ok,
+         [
+           %{
+             app: "dokku-radar",
+             process_type: "web",
+             process_index: 1,
+             state: "running",
+             cid: "abc"
+           }
+         ]}
+      end)
+
+      expect_key_mount_ok()
+      expect_key_file_exists()
+      expect_all_networks_monitoring()
+
+      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
+                                                     "dokku",
+                                                     [
+                                                       "enter",
+                                                       @dokku_app,
+                                                       "web",
+                                                       "--",
+                                                       "wget",
+                                                       "-qO-",
+                                                       "http://127.0.0.1:9110/health"
+                                                     ],
+                                                     [] ->
+        {:error, "Connection refused", 255}
+      end)
+
+      output = capture_io(fn -> Diagnose.run(@app) end)
+      assert output =~ "❌"
+      assert output =~ "Health"
+    end
   end
 
   defp expect_grafana_running() do
@@ -553,6 +661,23 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
            cid: "def"
          }
        ]}
+    end)
+  end
+
+  defp expect_health_ok() do
+    expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
+                                                   "dokku",
+                                                   [
+                                                     "enter",
+                                                     @dokku_app,
+                                                     "web",
+                                                     "--",
+                                                     "wget",
+                                                     "-qO-",
+                                                     "http://127.0.0.1:9110/health"
+                                                   ],
+                                                   [] ->
+      {:ok, "ok"}
     end)
   end
 end

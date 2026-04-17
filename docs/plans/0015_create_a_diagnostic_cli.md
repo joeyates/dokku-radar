@@ -16,7 +16,7 @@ Implement `bin/dokku-radar.exs diagnose` to check the correct functioning and in
 - [x] 4. Implement **Network membership** checks: verify `dokku-radar`, `prometheus`, and `grafana` are all on the `monitoring` network.
 - [x] 5. Implement **Prometheus running** check: `ps:report` for the `prometheus` Dokku app — all `web` processes in state `running`.
 - [x] 6. Implement **Grafana running** check: `ps:report` for the `grafana` Dokku app — all `web` processes in state `running`.
-- [ ] 7. Implement **Health endpoint** check: `DokkuRemote.Commands.Enter` into `dokku-radar web` running `wget -qO- http://127.0.0.1:9110/health`; expect output `ok`.
+- [x] 7. Implement **Health endpoint** check: `DokkuRemote.Commands.Enter` into `dokku-radar web` running `wget -qO- http://127.0.0.1:9110/health`; expect output `ok`.
 - [ ] 8. Implement **SSH connectivity** check: `Enter` into `dokku-radar web` and run the SSH `plugin:list` command; success if exit code 0.
 - [ ] 9. Implement **Prometheus targets** check: `Enter` into `prometheus web` and call the Prometheus API; expect `dokku_radar` job in active targets with health `up`.
 - [ ] 10. Ask the user for feedback on the state of the implementation and carry out any requested corrections.

@@ -4,6 +4,7 @@ defmodule DokkuRadar.CLI.Diagnose do
   @ssh_host_dir "/var/lib/dokku/data/storage/dokku-radar/.ssh"
   @container_dir "/data/.ssh"
   @private_key_path "#{@ssh_host_dir}/id_ed25519"
+  @health_url "http://127.0.0.1:9110/health"
   @monitoring_network "monitoring"
   @network_apps ["dokku-radar", "prometheus", "grafana"]
 
@@ -43,7 +44,11 @@ defmodule DokkuRadar.CLI.Diagnose do
         network_checks ++
         [
           %{message: "prometheus is running", function: fn -> check_prometheus_running(app) end},
-          %{message: "grafana is running", function: fn -> check_grafana_running(app) end}
+          %{message: "grafana is running", function: fn -> check_grafana_running(app) end},
+          %{
+            message: "health endpoint responds ok",
+            function: fn -> check_health_endpoint(app) end
+          }
         ]
 
     Enum.each(checks, fn check ->
@@ -183,6 +188,25 @@ defmodule DokkuRadar.CLI.Diagnose do
 
       {:error, _output, _exit_code} ->
         {:error, "Grafana running: could not retrieve ps report"}
+    end
+  end
+
+  defp check_health_endpoint(%App{dokku_host: dokku_host, dokku_app: dokku_app}) do
+    case @root_command.run(
+           dokku_host,
+           "dokku",
+           ["enter", dokku_app, "web", "--", "wget", "-qO-", @health_url],
+           []
+         ) do
+      {:ok, output} ->
+        if String.trim(output) == "ok" do
+          {:ok, nil}
+        else
+          {:error, "Health: unexpected response: #{String.trim(output)}"}
+        end
+
+      {:error, _output, _exit_code} ->
+        {:error, "Health: could not reach health endpoint"}
     end
   end
 end
