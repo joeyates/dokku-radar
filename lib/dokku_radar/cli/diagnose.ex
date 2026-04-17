@@ -9,12 +9,14 @@ defmodule DokkuRadar.CLI.Diagnose do
 
   def run(%App{} = app) do
     checks = [
-      check_app_running(app)
+      fn -> check_app_running(app) end
     ]
 
-    Enum.each(checks, fn
-      {:ok, message} -> IO.puts("✅ #{message}")
-      {:error, message} -> IO.puts("❌ #{message}")
+    Enum.each(checks, fn check ->
+      case check.() do
+        {:ok, message} -> IO.puts("✅ #{message}")
+        {:error, message} -> IO.puts("❌ #{message}")
+      end
     end)
 
     :ok
