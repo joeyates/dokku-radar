@@ -12,7 +12,7 @@ Implement `bin/dokku-radar.exs diagnose` to check the correct functioning and in
 
 - [x] 1. Create `lib/dokku_radar/cli/diagnose.ex` with a stub `run/1`, add `diagnose` to `@commands` in `DokkuRadar.CLI` and route it; add a skeleton test in `test/dokku_radar/cli/diagnose_test.exs`.
 - [x] 2. Implement **App running** check: use `DokkuRemote.Commands.Ps.report/1` filtered for `dokku-radar` — all `web` processes must be in state `running`.
-- [ ] 3. Implement **Private key** checks: (a) use `DokkuRemote.Commands.Storage.App.mount_exists?/3` to verify the host path `/var/lib/dokku/data/storage/dokku-radar/.ssh` is mounted at `/data/.ssh`; (b) use `DokkuRemote.Commands.Enter` into `dokku-radar web` to run `test -f /data/.ssh/id_ed25519` and verify exit code 0.
+- [x] 3. Implement **Private key** checks: (a) use `DokkuRemote.Commands.Storage.App.mount_exists?/3` to verify the host path `/var/lib/dokku/data/storage/dokku-radar/.ssh` is mounted at `/data/.ssh`; (b) use `DokkuRemote.Commands.Enter` into `dokku-radar web` to run `test -f /data/.ssh/id_ed25519` and verify exit code 0.
 - [ ] 4. Implement **Network membership** checks: verify `dokku-radar`, `prometheus`, and `grafana` are all on the `monitoring` network.
 - [ ] 5. Implement **Prometheus running** check: `ps:report` for the `prometheus` Dokku app — all `web` processes in state `running`.
 - [ ] 6. Implement **Grafana running** check: `ps:report` for the `grafana` Dokku app — all `web` processes in state `running`.

@@ -19,13 +19,22 @@ defmodule DokkuRadar.CLI.Diagnose do
 
   def run(%App{} = app) do
     checks = [
-      fn -> check_app_running(app) end,
-      fn -> check_private_key_mount(app) end,
-      fn -> check_private_key_file(app) end
+      %{message: "dokku-app is running", function: fn -> check_app_running(app) end},
+      %{
+        message: "private key is installed on host",
+        function: fn -> check_private_key_file(app) end
+      },
+      %{
+        message: "private key directory is mounted in container",
+        function: fn -> check_private_key_mount(app) end
+      }
     ]
 
     Enum.each(checks, fn check ->
-      case check.() do
+      IO.write("Checking #{check.message}... ")
+
+      case check.function.() do
+        {:ok, nil} -> IO.puts("✅")
         {:ok, message} -> IO.puts("✅ #{message}")
         {:error, message} -> IO.puts("❌ #{message}")
       end
@@ -43,7 +52,7 @@ defmodule DokkuRadar.CLI.Diagnose do
         all_running? = Enum.all?(web_processes, &(&1.state == "running"))
 
         if all_running? do
-          {:ok, "App running"}
+          {:ok, nil}
         else
           not_running =
             web_processes
@@ -59,6 +68,16 @@ defmodule DokkuRadar.CLI.Diagnose do
     end
   end
 
+  defp check_private_key_file(%App{dokku_host: dokku_host}) do
+    case @root_command.run(dokku_host, "test", ["-f", @private_key_path], []) do
+      {:ok, _output} ->
+        {:ok, nil}
+
+      {:error, _output, _exit_code} ->
+        {:error, "Private key: file not found at #{@private_key_path}"}
+    end
+  end
+
   defp check_private_key_mount(%App{dokku_host: dokku_host, dokku_app: dokku_app}) do
     case @root_command.run(
            dokku_host,
@@ -70,23 +89,13 @@ defmodule DokkuRadar.CLI.Diagnose do
         mount = "#{@ssh_host_dir}:#{@container_dir}"
 
         if String.contains?(output, mount) do
-          {:ok, "Private key: mount"}
+          {:ok, nil}
         else
           {:error, "Private key: mount not configured"}
         end
 
       {:error, _output, _exit_code} ->
         {:error, "Private key: mount: could not retrieve storage report"}
-    end
-  end
-
-  defp check_private_key_file(%App{dokku_host: dokku_host}) do
-    case @root_command.run(dokku_host, "test", ["-f", @private_key_path], []) do
-      {:ok, _output} ->
-        {:ok, "Private key: file"}
-
-      {:error, _output, _exit_code} ->
-        {:error, "Private key: file not found at #{@private_key_path}"}
     end
   end
 end
