@@ -250,7 +250,7 @@ Replace `DokkuRadar.DokkuCli` (the bespoke SSH wrapper) with the already-availab
 
 # Create a Diagnostic CLI
 
-Status: [ ]
+Status: [x]
 
 ## Description
 
