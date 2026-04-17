@@ -7,7 +7,7 @@ defmodule DokkuRadar.CLI.Diagnose do
                  DokkuRemote.Commands.Ps
                )
 
-  def run(%App{} = app, _private_key) do
+  def run(%App{} = app) do
     checks = [
       check_app_running(app)
     ]

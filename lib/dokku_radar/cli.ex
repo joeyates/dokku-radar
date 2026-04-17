@@ -7,13 +7,7 @@ defmodule DokkuRadar.CLI do
     %{
       commands: ["diagnose"],
       description: "Run diagnostic checks against a live deployment",
-      switches: [
-        private_key: %{
-          type: :string,
-          required: true,
-          description: "The path to the private key file to use for SSH authentication with Dokku"
-        }
-      ]
+      switches: []
     },
     %{
       commands: ["setup"],
@@ -41,9 +35,8 @@ defmodule DokkuRadar.CLI do
   def run(args) do
     case HelpfulOptions.parse_commands(args, @commands) do
       {:ok, %{commands: ["diagnose"], switches: switches}} ->
-        private_key = Map.fetch!(switches, :private_key)
         %App{} = dokku_radar_app = dokku_radar_app_fom_env!(switches)
-        :ok = Diagnose.run(dokku_radar_app, private_key)
+        :ok = Diagnose.run(dokku_radar_app)
 
       {:ok, %{commands: ["setup"], switches: switches}} ->
         admin_email = Map.fetch!(switches, :admin_email)

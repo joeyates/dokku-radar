@@ -9,13 +9,11 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
 
   @dokku_host "test.example.com"
   @dokku_app "dokku-radar"
-  @private_key "/tmp/id_rsa"
-
   @app %App{dokku_host: @dokku_host, dokku_app: @dokku_app}
 
   setup :verify_on_exit!
 
-  describe "run/2" do
+  describe "run/1" do
     test "prints a passing line when all web processes are running" do
       expect(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
         {:ok,
@@ -30,7 +28,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
          ]}
       end)
 
-      output = capture_io(fn -> Diagnose.run(@app, @private_key) end)
+      output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "✅"
       assert output =~ "App running"
     end
@@ -49,7 +47,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
          ]}
       end)
 
-      output = capture_io(fn -> Diagnose.run(@app, @private_key) end)
+      output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "❌"
       assert output =~ "App running"
     end
@@ -59,7 +57,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
         {:error, "ssh: Connection refused", 255}
       end)
 
-      output = capture_io(fn -> Diagnose.run(@app, @private_key) end)
+      output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "❌"
       assert output =~ "App running"
     end
