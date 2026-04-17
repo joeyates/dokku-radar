@@ -4,6 +4,8 @@ defmodule DokkuRadar.CLI.Diagnose do
   @ssh_host_dir "/var/lib/dokku/data/storage/dokku-radar/.ssh"
   @container_dir "/data/.ssh"
   @private_key_path "#{@ssh_host_dir}/id_ed25519"
+  @monitoring_network "monitoring"
+  @network_apps ["dokku-radar", "prometheus", "grafana"]
 
   @commands_ps Application.compile_env(
                  :dokku_radar,
@@ -18,17 +20,26 @@ defmodule DokkuRadar.CLI.Diagnose do
                 )
 
   def run(%App{} = app) do
-    checks = [
-      %{message: "dokku-app is running", function: fn -> check_app_running(app) end},
-      %{
-        message: "private key is installed on host",
-        function: fn -> check_private_key_file(app) end
-      },
-      %{
-        message: "private key directory is mounted in container",
-        function: fn -> check_private_key_mount(app) end
-      }
-    ]
+    network_checks =
+      Enum.map(@network_apps, fn target_app ->
+        %{
+          message: "#{target_app} is on #{@monitoring_network} network",
+          function: fn -> check_app_network(app, target_app) end
+        }
+      end)
+
+    checks =
+      [
+        %{message: "dokku-app is running", function: fn -> check_app_running(app) end},
+        %{
+          message: "private key directory is mounted in container",
+          function: fn -> check_private_key_mount(app) end
+        },
+        %{
+          message: "private key is installed on host",
+          function: fn -> check_private_key_file(app) end
+        }
+      ] ++ network_checks
 
     Enum.each(checks, fn check ->
       IO.write("Checking #{check.message}... ")
@@ -96,6 +107,27 @@ defmodule DokkuRadar.CLI.Diagnose do
 
       {:error, _output, _exit_code} ->
         {:error, "Private key: mount: could not retrieve storage report"}
+    end
+  end
+
+  defp check_app_network(%App{dokku_host: dokku_host}, target_app) do
+    case @root_command.run(
+           dokku_host,
+           "dokku",
+           ["network:report", target_app, "--network-attach-post-deploy"],
+           []
+         ) do
+      {:ok, output} ->
+        networks = output |> String.trim() |> String.split(",") |> Enum.map(&String.trim/1)
+
+        if @monitoring_network in networks do
+          {:ok, nil}
+        else
+          {:error, "Network: #{target_app} is not on #{@monitoring_network} network"}
+        end
+
+      {:error, _output, _exit_code} ->
+        {:error, "Network: could not retrieve network report for #{target_app}"}
     end
   end
 end
