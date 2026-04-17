@@ -86,6 +86,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
       expect_grafana_running()
       expect_health_ok()
       expect_ssh_ok()
+      expect_prometheus_targets_ok()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "Checking private key directory is mounted in container... ✅"
@@ -111,6 +112,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
       expect_grafana_running()
       expect_health_ok()
       expect_ssh_ok()
+      expect_prometheus_targets_ok()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "❌"
@@ -137,6 +139,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
       expect_grafana_running()
       expect_health_ok()
       expect_ssh_ok()
+      expect_prometheus_targets_ok()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "❌"
@@ -152,6 +155,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
       expect_grafana_running()
       expect_health_ok()
       expect_ssh_ok()
+      expect_prometheus_targets_ok()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "Checking private key is installed on host... ✅"
@@ -173,6 +177,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
       expect_grafana_running()
       expect_health_ok()
       expect_ssh_ok()
+      expect_prometheus_targets_ok()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "❌"
@@ -198,6 +203,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
       expect_all_networks_monitoring()
       expect_health_ok()
       expect_ssh_ok()
+      expect_prometheus_targets_ok()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "Checking dokku-radar is on monitoring network... ✅"
@@ -257,6 +263,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
 
       expect_health_ok()
       expect_ssh_ok()
+      expect_prometheus_targets_ok()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "❌"
@@ -315,6 +322,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
 
       expect_health_ok()
       expect_ssh_ok()
+      expect_prometheus_targets_ok()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "❌"
@@ -549,6 +557,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
       end)
 
       expect_ssh_ok()
+      expect_prometheus_targets_ok()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "❌"
@@ -589,6 +598,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
       end)
 
       expect_ssh_ok()
+      expect_prometheus_targets_ok()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "❌"
@@ -651,9 +661,161 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
         {:error, "Permission denied", 255}
       end)
 
+      expect_prometheus_targets_ok()
+
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "❌"
       assert output =~ "SSH"
+    end
+
+    test "prints a passing line when Prometheus targets include dokku_radar with health up" do
+      stub(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
+        {:ok,
+         [
+           %{
+             app: "dokku-radar",
+             process_type: "web",
+             process_index: 1,
+             state: "running",
+             cid: "abc"
+           }
+         ]}
+      end)
+
+      stub(DokkuRemote.Root.Command.Mock, :run, fn _host, _cmd, params, _opts ->
+        case params do
+          ["enter", "prometheus", "web" | _] ->
+            {:ok,
+             ~s({"status":"success","data":{"activeTargets":[{"labels":{"job":"dokku_radar"},"health":"up"}]}})}
+
+          _ ->
+            {:ok, "ok"}
+        end
+      end)
+
+      output = capture_io(fn -> Diagnose.run(@app) end)
+      assert output =~ "Checking Prometheus targets are healthy... ✅"
+    end
+
+    test "prints a failing line when dokku_radar is not in Prometheus targets" do
+      stub(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
+        {:ok,
+         [
+           %{
+             app: "dokku-radar",
+             process_type: "web",
+             process_index: 1,
+             state: "running",
+             cid: "abc"
+           }
+         ]}
+      end)
+
+      expect_key_mount_ok()
+      expect_key_file_exists()
+      expect_all_networks_monitoring()
+      expect_health_ok()
+      expect_ssh_ok()
+
+      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
+                                                     "dokku",
+                                                     [
+                                                       "enter",
+                                                       "prometheus",
+                                                       "web",
+                                                       "--",
+                                                       "wget",
+                                                       "-qO-",
+                                                       "http://127.0.0.1:9090/api/v1/targets"
+                                                     ],
+                                                     [] ->
+        {:ok, ~s({"status":"success","data":{"activeTargets":[]}})}
+      end)
+
+      output = capture_io(fn -> Diagnose.run(@app) end)
+      assert output =~ "❌"
+      assert output =~ "Prometheus targets"
+    end
+
+    test "prints a failing line when dokku_radar Prometheus health is not up" do
+      stub(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
+        {:ok,
+         [
+           %{
+             app: "dokku-radar",
+             process_type: "web",
+             process_index: 1,
+             state: "running",
+             cid: "abc"
+           }
+         ]}
+      end)
+
+      expect_key_mount_ok()
+      expect_key_file_exists()
+      expect_all_networks_monitoring()
+      expect_health_ok()
+      expect_ssh_ok()
+
+      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
+                                                     "dokku",
+                                                     [
+                                                       "enter",
+                                                       "prometheus",
+                                                       "web",
+                                                       "--",
+                                                       "wget",
+                                                       "-qO-",
+                                                       "http://127.0.0.1:9090/api/v1/targets"
+                                                     ],
+                                                     [] ->
+        {:ok,
+         ~s({"status":"success","data":{"activeTargets":[{"labels":{"job":"dokku_radar"},"health":"down"}]}})}
+      end)
+
+      output = capture_io(fn -> Diagnose.run(@app) end)
+      assert output =~ "❌"
+      assert output =~ "Prometheus targets"
+    end
+
+    test "prints a failing line when the Prometheus targets command fails" do
+      stub(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
+        {:ok,
+         [
+           %{
+             app: "dokku-radar",
+             process_type: "web",
+             process_index: 1,
+             state: "running",
+             cid: "abc"
+           }
+         ]}
+      end)
+
+      expect_key_mount_ok()
+      expect_key_file_exists()
+      expect_all_networks_monitoring()
+      expect_health_ok()
+      expect_ssh_ok()
+
+      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
+                                                     "dokku",
+                                                     [
+                                                       "enter",
+                                                       "prometheus",
+                                                       "web",
+                                                       "--",
+                                                       "wget",
+                                                       "-qO-",
+                                                       "http://127.0.0.1:9090/api/v1/targets"
+                                                     ],
+                                                     [] ->
+        {:error, "Connection refused", 255}
+      end)
+
+      output = capture_io(fn -> Diagnose.run(@app) end)
+      assert output =~ "❌"
+      assert output =~ "Prometheus targets"
     end
   end
 
@@ -768,6 +930,24 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
                                                    ],
                                                    [] ->
       {:ok, ""}
+    end)
+  end
+
+  defp expect_prometheus_targets_ok() do
+    expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
+                                                   "dokku",
+                                                   [
+                                                     "enter",
+                                                     "prometheus",
+                                                     "web",
+                                                     "--",
+                                                     "wget",
+                                                     "-qO-",
+                                                     "http://127.0.0.1:9090/api/v1/targets"
+                                                   ],
+                                                   [] ->
+      {:ok,
+       ~s({"status":"success","data":{"activeTargets":[{"labels":{"job":"dokku_radar"},"health":"up"}]}})}
     end)
   end
 end

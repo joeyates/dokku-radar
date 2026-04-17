@@ -5,6 +5,7 @@ defmodule DokkuRadar.CLI.Diagnose do
   @container_dir "/data/.ssh"
   @private_key_path "#{@ssh_host_dir}/id_ed25519"
   @health_url "http://127.0.0.1:9110/health"
+  @prometheus_targets_url "http://127.0.0.1:9090/api/v1/targets"
   @monitoring_network "monitoring"
   @network_apps ["dokku-radar", "prometheus", "grafana"]
 
@@ -52,6 +53,10 @@ defmodule DokkuRadar.CLI.Diagnose do
           %{
             message: "SSH connectivity",
             function: fn -> check_ssh_connectivity(app) end
+          },
+          %{
+            message: "Prometheus targets are healthy",
+            function: fn -> check_prometheus_targets(app) end
           }
         ]
 
@@ -229,6 +234,41 @@ defmodule DokkuRadar.CLI.Diagnose do
 
       {:error, _output, _exit_code} ->
         {:error, "SSH: could not connect to dokku on #{dokku_host}"}
+    end
+  end
+
+  defp check_prometheus_targets(%App{dokku_host: dokku_host}) do
+    case @root_command.run(
+           dokku_host,
+           "dokku",
+           ["enter", "prometheus", "web", "--", "wget", "-qO-", @prometheus_targets_url],
+           []
+         ) do
+      {:ok, output} ->
+        case Jason.decode(output) do
+          {:ok, %{"data" => %{"activeTargets" => targets}}} ->
+            dokku_radar_target =
+              Enum.find(targets, fn target ->
+                get_in(target, ["labels", "job"]) == "dokku_radar"
+              end)
+
+            case dokku_radar_target do
+              %{"health" => "up"} ->
+                {:ok, nil}
+
+              nil ->
+                {:error, "Prometheus targets: dokku_radar job not found"}
+
+              %{"health" => health} ->
+                {:error, "Prometheus targets: dokku_radar health is #{health}"}
+            end
+
+          _ ->
+            {:error, "Prometheus targets: unexpected response format"}
+        end
+
+      {:error, _output, _exit_code} ->
+        {:error, "Prometheus targets: could not reach Prometheus API"}
     end
   end
 end
