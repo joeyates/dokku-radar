@@ -83,6 +83,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
       expect_key_file_exists()
       expect_all_networks_monitoring()
       expect_prometheus_running()
+      expect_grafana_running()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "Checking private key directory is mounted in container... ✅"
@@ -105,6 +106,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
       expect_key_file_exists()
       expect_all_networks_monitoring()
       expect_prometheus_running()
+      expect_grafana_running()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "❌"
@@ -128,6 +130,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
       expect_key_file_exists()
       expect_all_networks_monitoring()
       expect_prometheus_running()
+      expect_grafana_running()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "❌"
@@ -140,6 +143,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
       expect_key_file_exists()
       expect_all_networks_monitoring()
       expect_prometheus_running()
+      expect_grafana_running()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "Checking private key is installed on host... ✅"
@@ -158,6 +162,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
 
       expect_all_networks_monitoring()
       expect_prometheus_running()
+      expect_grafana_running()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "❌"
@@ -299,7 +304,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
     end
 
     test "prints a passing line when all prometheus web processes are running" do
-      expect(DokkuRemote.Commands.Ps.Mock, :report, 2, fn host ->
+      expect(DokkuRemote.Commands.Ps.Mock, :report, 3, fn host ->
         case host do
           @dokku_host ->
             {:ok,
@@ -331,7 +336,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
     end
 
     test "prints a failing line when a prometheus web process is not running" do
-      expect(DokkuRemote.Commands.Ps.Mock, :report, 2, fn host ->
+      expect(DokkuRemote.Commands.Ps.Mock, :report, 3, fn host ->
         case host do
           @dokku_host ->
             {:ok,
@@ -381,6 +386,8 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
         {:error, "ssh: Connection refused", 255}
       end)
 
+      expect_grafana_running()
+
       stub(DokkuRemote.Root.Command.Mock, :run, fn _host, _cmd, _params, _opts ->
         {:ok, "monitoring"}
       end)
@@ -389,6 +396,99 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
       assert output =~ "❌"
       assert output =~ "Prometheus running"
     end
+
+    test "prints a passing line when all grafana web processes are running" do
+      expect(DokkuRemote.Commands.Ps.Mock, :report, 3, fn @dokku_host ->
+        {:ok,
+         [
+           %{
+             app: "dokku-radar",
+             process_type: "web",
+             process_index: 1,
+             state: "running",
+             cid: "abc"
+           },
+           %{
+             app: "prometheus",
+             process_type: "web",
+             process_index: 1,
+             state: "running",
+             cid: "def"
+           },
+           %{app: "grafana", process_type: "web", process_index: 1, state: "running", cid: "ghi"}
+         ]}
+      end)
+
+      stub(DokkuRemote.Root.Command.Mock, :run, fn _host, _cmd, _params, _opts ->
+        {:ok, "monitoring"}
+      end)
+
+      output = capture_io(fn -> Diagnose.run(@app) end)
+      assert output =~ "Checking grafana is running... ✅"
+    end
+
+    test "prints a failing line when a grafana web process is not running" do
+      expect(DokkuRemote.Commands.Ps.Mock, :report, 3, fn @dokku_host ->
+        {:ok,
+         [
+           %{
+             app: "dokku-radar",
+             process_type: "web",
+             process_index: 1,
+             state: "running",
+             cid: "abc"
+           },
+           %{
+             app: "prometheus",
+             process_type: "web",
+             process_index: 1,
+             state: "running",
+             cid: "def"
+           },
+           %{app: "grafana", process_type: "web", process_index: 1, state: "exited", cid: "ghi"}
+         ]}
+      end)
+
+      stub(DokkuRemote.Root.Command.Mock, :run, fn _host, _cmd, _params, _opts ->
+        {:ok, "monitoring"}
+      end)
+
+      output = capture_io(fn -> Diagnose.run(@app) end)
+      assert output =~ "❌"
+      assert output =~ "Grafana running"
+    end
+
+    test "prints a failing line when the grafana ps report fails" do
+      expect_app_running()
+      expect_prometheus_running()
+
+      expect(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
+        {:error, "ssh: Connection refused", 255}
+      end)
+
+      stub(DokkuRemote.Root.Command.Mock, :run, fn _host, _cmd, _params, _opts ->
+        {:ok, "monitoring"}
+      end)
+
+      output = capture_io(fn -> Diagnose.run(@app) end)
+      assert output =~ "❌"
+      assert output =~ "Grafana running"
+    end
+  end
+
+  defp expect_grafana_running() do
+    expect(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
+      {:ok,
+       [
+         %{
+           app: "grafana",
+           process_type: "web",
+           process_index: 1,
+           state: "running",
+           cid: "ghi"
+         }
+       ]}
+    end)
   end
 
   defp expect_app_running() do

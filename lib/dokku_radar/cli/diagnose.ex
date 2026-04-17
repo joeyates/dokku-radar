@@ -42,7 +42,8 @@ defmodule DokkuRadar.CLI.Diagnose do
       ] ++
         network_checks ++
         [
-          %{message: "prometheus is running", function: fn -> check_prometheus_running(app) end}
+          %{message: "prometheus is running", function: fn -> check_prometheus_running(app) end},
+          %{message: "grafana is running", function: fn -> check_grafana_running(app) end}
         ]
 
     Enum.each(checks, fn check ->
@@ -157,6 +158,31 @@ defmodule DokkuRadar.CLI.Diagnose do
 
       {:error, _output, _exit_code} ->
         {:error, "Prometheus running: could not retrieve ps report"}
+    end
+  end
+
+  defp check_grafana_running(%App{dokku_host: dokku_host}) do
+    case @commands_ps.report(dokku_host) do
+      {:ok, entries} ->
+        web_processes =
+          Enum.filter(entries, &(&1.app == "grafana" and &1.process_type == "web"))
+
+        all_running? = Enum.all?(web_processes, &(&1.state == "running"))
+
+        if all_running? do
+          {:ok, nil}
+        else
+          not_running =
+            web_processes
+            |> Enum.reject(&(&1.state == "running"))
+            |> Enum.map(&"web.#{&1.process_index} is #{&1.state}")
+            |> Enum.join(", ")
+
+          {:error, "Grafana running: #{not_running}"}
+        end
+
+      {:error, _output, _exit_code} ->
+        {:error, "Grafana running: could not retrieve ps report"}
     end
   end
 end
