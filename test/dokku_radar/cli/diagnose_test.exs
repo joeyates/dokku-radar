@@ -85,6 +85,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
       expect_prometheus_running()
       expect_grafana_running()
       expect_health_ok()
+      expect_ssh_ok()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "Checking private key directory is mounted in container... ✅"
@@ -109,6 +110,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
       expect_prometheus_running()
       expect_grafana_running()
       expect_health_ok()
+      expect_ssh_ok()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "❌"
@@ -134,6 +136,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
       expect_prometheus_running()
       expect_grafana_running()
       expect_health_ok()
+      expect_ssh_ok()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "❌"
@@ -148,6 +151,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
       expect_prometheus_running()
       expect_grafana_running()
       expect_health_ok()
+      expect_ssh_ok()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "Checking private key is installed on host... ✅"
@@ -168,6 +172,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
       expect_prometheus_running()
       expect_grafana_running()
       expect_health_ok()
+      expect_ssh_ok()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "❌"
@@ -192,6 +197,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
       expect_key_file_exists()
       expect_all_networks_monitoring()
       expect_health_ok()
+      expect_ssh_ok()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "Checking dokku-radar is on monitoring network... ✅"
@@ -250,6 +256,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
       end)
 
       expect_health_ok()
+      expect_ssh_ok()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "❌"
@@ -307,6 +314,7 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
       end)
 
       expect_health_ok()
+      expect_ssh_ok()
 
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "❌"
@@ -540,6 +548,8 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
         {:ok, "error"}
       end)
 
+      expect_ssh_ok()
+
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "❌"
       assert output =~ "Health"
@@ -578,9 +588,72 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
         {:error, "Connection refused", 255}
       end)
 
+      expect_ssh_ok()
+
       output = capture_io(fn -> Diagnose.run(@app) end)
       assert output =~ "❌"
       assert output =~ "Health"
+    end
+
+    test "prints a passing line when SSH connectivity succeeds" do
+      stub(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
+        {:ok,
+         [
+           %{
+             app: "dokku-radar",
+             process_type: "web",
+             process_index: 1,
+             state: "running",
+             cid: "abc"
+           }
+         ]}
+      end)
+
+      stub(DokkuRemote.Root.Command.Mock, :run, fn _host, _cmd, _params, _opts ->
+        {:ok, ""}
+      end)
+
+      output = capture_io(fn -> Diagnose.run(@app) end)
+      assert output =~ "Checking SSH connectivity... ✅"
+    end
+
+    test "prints a failing line when SSH connectivity fails" do
+      stub(DokkuRemote.Commands.Ps.Mock, :report, fn @dokku_host ->
+        {:ok,
+         [
+           %{
+             app: "dokku-radar",
+             process_type: "web",
+             process_index: 1,
+             state: "running",
+             cid: "abc"
+           }
+         ]}
+      end)
+
+      expect_key_mount_ok()
+      expect_key_file_exists()
+      expect_all_networks_monitoring()
+      expect_health_ok()
+
+      expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
+                                                     "dokku",
+                                                     [
+                                                       "enter",
+                                                       @dokku_app,
+                                                       "web",
+                                                       "--",
+                                                       "/bin/sh",
+                                                       "-c",
+                                                       "ssh -o BatchMode=yes -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o StrictHostKeyChecking=no dokku@#{@dokku_host} plugin:list"
+                                                     ],
+                                                     [] ->
+        {:error, "Permission denied", 255}
+      end)
+
+      output = capture_io(fn -> Diagnose.run(@app) end)
+      assert output =~ "❌"
+      assert output =~ "SSH"
     end
   end
 
@@ -678,6 +751,23 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
                                                    ],
                                                    [] ->
       {:ok, "ok"}
+    end)
+  end
+
+  defp expect_ssh_ok() do
+    expect(DokkuRemote.Root.Command.Mock, :run, fn @dokku_host,
+                                                   "dokku",
+                                                   [
+                                                     "enter",
+                                                     @dokku_app,
+                                                     "web",
+                                                     "--",
+                                                     "/bin/sh",
+                                                     "-c",
+                                                     "ssh -o BatchMode=yes -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o StrictHostKeyChecking=no dokku@#{@dokku_host} plugin:list"
+                                                   ],
+                                                   [] ->
+      {:ok, ""}
     end)
   end
 end

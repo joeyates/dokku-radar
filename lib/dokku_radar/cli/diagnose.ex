@@ -48,6 +48,10 @@ defmodule DokkuRadar.CLI.Diagnose do
           %{
             message: "health endpoint responds ok",
             function: fn -> check_health_endpoint(app) end
+          },
+          %{
+            message: "SSH connectivity",
+            function: fn -> check_ssh_connectivity(app) end
           }
         ]
 
@@ -207,6 +211,24 @@ defmodule DokkuRadar.CLI.Diagnose do
 
       {:error, _output, _exit_code} ->
         {:error, "Health: could not reach health endpoint"}
+    end
+  end
+
+  defp check_ssh_connectivity(%App{dokku_host: dokku_host, dokku_app: dokku_app}) do
+    ssh_cmd =
+      "ssh -o BatchMode=yes -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o StrictHostKeyChecking=no dokku@#{dokku_host} plugin:list"
+
+    case @root_command.run(
+           dokku_host,
+           "dokku",
+           ["enter", dokku_app, "web", "--", "/bin/sh", "-c", ssh_cmd],
+           []
+         ) do
+      {:ok, _output} ->
+        {:ok, nil}
+
+      {:error, _output, _exit_code} ->
+        {:error, "SSH: could not connect to dokku on #{dokku_host}"}
     end
   end
 end
