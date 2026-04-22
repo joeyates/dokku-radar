@@ -2,18 +2,36 @@ defmodule DokkuRadar.CLI.Diagnose do
   alias DokkuRemote.App
 
   @ssh_host_dir "/var/lib/dokku/data/storage/dokku-radar/.ssh"
-  @container_dir "/data/.ssh"
-  @private_key_path "#{@ssh_host_dir}/id_ed25519"
+  @host_private_key_path "#{@ssh_host_dir}/id_ed25519"
+  @container_ssh_dir "/data/.ssh"
+  @container_private_key_path "#{@container_ssh_dir}/id_ed25519"
   @health_url "http://127.0.0.1:9110/health"
-  @prometheus_targets_url "http://127.0.0.1:9090/api/v1/targets"
+  @prometheus_targets_url "http://prometheus.web.1:9090/api/v1/targets"
   @monitoring_network "monitoring"
-  @network_apps ["dokku-radar", "prometheus", "grafana"]
 
-  @commands_ps Application.compile_env(
-                 :dokku_radar,
-                 :"DokkuRemote.Commands.Ps",
-                 DokkuRemote.Commands.Ps
-               )
+  @commands_enter_app Application.compile_env(
+                        :dokku_radar,
+                        :"DokkuRemote.Commands.Enter.App",
+                        DokkuRemote.Commands.Enter.App
+                      )
+
+  @commands_network_app Application.compile_env(
+                          :dokku_radar,
+                          :"DokkuRemote.Commands.Network.App",
+                          DokkuRemote.Commands.Network.App
+                        )
+
+  @commands_ps_app Application.compile_env(
+                     :dokku_radar,
+                     :"DokkuRemote.Commands.Ps.App",
+                     DokkuRemote.Commands.Ps.App
+                   )
+
+  @commands_storage_app Application.compile_env(
+                          :dokku_radar,
+                          :"DokkuRemote.Commands.Storage.App",
+                          DokkuRemote.Commands.Storage.App
+                        )
 
   @root_command Application.compile_env(
                   :dokku_radar,
@@ -22,37 +40,51 @@ defmodule DokkuRadar.CLI.Diagnose do
                 )
 
   def run(%App{} = app) do
+    prometheus_app = %App{dokku_host: app.dokku_host, dokku_app: "prometheus"}
+    grafana_app = %App{dokku_host: app.dokku_host, dokku_app: "grafana"}
+    apps = [app, prometheus_app, grafana_app]
+
+    running_checks =
+      Enum.map(
+        apps,
+        fn app ->
+          %{
+            message: "#{app.dokku_app} is running",
+            function: fn -> check_app_running(app) end
+          }
+        end
+      )
+
     network_checks =
-      Enum.map(@network_apps, fn target_app ->
-        %{
-          message: "#{target_app} is on #{@monitoring_network} network",
-          function: fn -> check_app_network(app, target_app) end
-        }
-      end)
+      Enum.map(
+        apps,
+        fn app ->
+          %{
+            message: "#{app.dokku_app} is on #{@monitoring_network} network",
+            function: fn -> check_app_network(app, @monitoring_network) end
+          }
+        end
+      )
 
     checks =
-      [
-        %{message: "dokku-app is running", function: fn -> check_app_running(app) end},
-        %{
-          message: "private key directory is mounted in container",
-          function: fn -> check_private_key_mount(app) end
-        },
-        %{
-          message: "private key is installed on host",
-          function: fn -> check_private_key_file(app) end
-        }
-      ] ++
+      running_checks ++
         network_checks ++
         [
-          %{message: "prometheus is running", function: fn -> check_prometheus_running(app) end},
-          %{message: "grafana is running", function: fn -> check_grafana_running(app) end},
           %{
-            message: "health endpoint responds ok",
+            message: "private key directory is mounted in container",
+            function: fn -> check_private_key_mount(app) end
+          },
+          %{
+            message: "private key is installed on host",
+            function: fn -> check_private_key_file(app) end
+          },
+          %{
+            message: "dokku-radar health endpoint responds ok",
             function: fn -> check_health_endpoint(app) end
           },
           %{
-            message: "SSH connectivity",
-            function: fn -> check_ssh_connectivity(app) end
+            message: "dokku-radar has SSH connectivity to the host",
+            function: fn -> check_app_ssh_connectivity(app) end
           },
           %{
             message: "Prometheus targets are healthy",
@@ -60,152 +92,101 @@ defmodule DokkuRadar.CLI.Diagnose do
           }
         ]
 
-    Enum.each(checks, fn check ->
-      IO.write("Checking #{check.message}... ")
+    all_passed =
+      Enum.reduce(
+        checks,
+        true,
+        fn check, result ->
+          IO.write("Checking #{check.message}... ")
 
-      case check.function.() do
-        {:ok, nil} -> IO.puts("✅")
-        {:ok, message} -> IO.puts("✅ #{message}")
-        {:error, message} -> IO.puts("❌ #{message}")
-      end
-    end)
+          case check.function.() do
+            {:ok, nil} ->
+              IO.puts("✅")
+              result
 
-    :ok
-  end
+            {:ok, message} ->
+              IO.puts("✅ #{message}")
+              result
 
-  defp check_app_running(%App{dokku_host: dokku_host, dokku_app: dokku_app}) do
-    case @commands_ps.report(dokku_host) do
-      {:ok, entries} ->
-        web_processes =
-          Enum.filter(entries, &(&1.app == dokku_app && &1.process_type == "web"))
-
-        all_running? = Enum.all?(web_processes, &(&1.state == "running"))
-
-        if all_running? do
-          {:ok, nil}
-        else
-          not_running =
-            web_processes
-            |> Enum.reject(&(&1.state == "running"))
-            |> Enum.map(&"web.#{&1.process_index} is #{&1.state}")
-            |> Enum.join(", ")
-
-          {:error, "App running: #{not_running}"}
+            {:error, message} ->
+              IO.puts("❌ #{message}")
+              false
+          end
         end
+      )
 
-      {:error, _output, _exit_code} ->
-        {:error, "App running: could not retrieve ps report"}
+    if all_passed do
+      IO.puts("All checks passed! ✅")
+      :ok
+    else
+      IO.puts("Some checks failed. Please review the output above. ❌")
+      {:error, "One or more checks failed"}
     end
   end
 
-  defp check_private_key_file(%App{dokku_host: dokku_host}) do
-    case @root_command.run(dokku_host, "test", ["-f", @private_key_path], []) do
-      {:ok, _output} ->
+  defp check_app_running(%App{} = app) do
+    case @commands_ps_app.report(app) do
+      {:ok, report} ->
+        if report.running do
+          {:ok, nil}
+        else
+          {:error, "App #{inspect(app.dokku_app)} not running"}
+        end
+
+      {:error, _output, _exit_code} ->
+        {:error, "Could not retrieve ps report for #{inspect(app.dokku_app)}"}
+    end
+  end
+
+  defp check_private_key_mount(%App{} = app) do
+    case @commands_storage_app.mount_exists?(
+           app,
+           @ssh_host_dir,
+           @container_ssh_dir
+         ) do
+      {:ok, true} ->
         {:ok, nil}
 
-      {:error, _output, _exit_code} ->
-        {:error, "Private key: file not found at #{@private_key_path}"}
-    end
-  end
-
-  defp check_private_key_mount(%App{dokku_host: dokku_host, dokku_app: dokku_app}) do
-    case @root_command.run(
-           dokku_host,
-           "dokku",
-           ["storage:report", dokku_app, "--storage-run-mounts"],
-           []
-         ) do
-      {:ok, output} ->
-        mount = "#{@ssh_host_dir}:#{@container_dir}"
-
-        if String.contains?(output, mount) do
-          {:ok, nil}
-        else
-          {:error, "Private key: mount not configured"}
-        end
+      {:ok, false} ->
+        {:error, "Private key: mount not found for #{@ssh_host_dir} -> #{@container_ssh_dir}"}
 
       {:error, _output, _exit_code} ->
         {:error, "Private key: mount: could not retrieve storage report"}
     end
   end
 
-  defp check_app_network(%App{dokku_host: dokku_host}, target_app) do
-    case @root_command.run(
-           dokku_host,
-           "dokku",
-           ["network:report", target_app, "--network-attach-post-deploy"],
-           []
-         ) do
+  defp check_private_key_file(%App{dokku_host: dokku_host}) do
+    case @root_command.run(dokku_host, "test", ["-f", @host_private_key_path]) do
+      {:ok, ""} ->
+        {:ok, nil}
+
+      {:error, "", 1} ->
+        {:error, "Private key: file not found at #{@host_private_key_path}"}
+
+      {:error, _output, _exit_code} ->
+        {:error, "Failed to check private key file on host"}
+    end
+  end
+
+  defp check_app_network(%App{} = app, network) do
+    case @commands_network_app.get(app, "attach-post-deploy") do
       {:ok, output} ->
-        networks = output |> String.trim() |> String.split(",") |> Enum.map(&String.trim/1)
-
-        if @monitoring_network in networks do
+        if output == network do
           {:ok, nil}
         else
-          {:error, "Network: #{target_app} is not on #{@monitoring_network} network"}
+          {:error, "Network: #{inspect(app.dokku_app)} is not on #{network} network"}
         end
 
       {:error, _output, _exit_code} ->
-        {:error, "Network: could not retrieve network report for #{target_app}"}
+        {:error, "Network: could not retrieve network report for #{app.dokku_app}"}
     end
   end
 
-  defp check_prometheus_running(%App{dokku_host: dokku_host}) do
-    case @commands_ps.report(dokku_host) do
-      {:ok, entries} ->
-        web_processes =
-          Enum.filter(entries, &(&1.app == "prometheus" and &1.process_type == "web"))
-
-        all_running? = Enum.all?(web_processes, &(&1.state == "running"))
-
-        if all_running? do
-          {:ok, nil}
-        else
-          not_running =
-            web_processes
-            |> Enum.reject(&(&1.state == "running"))
-            |> Enum.map(&"web.#{&1.process_index} is #{&1.state}")
-            |> Enum.join(", ")
-
-          {:error, "Prometheus running: #{not_running}"}
-        end
-
-      {:error, _output, _exit_code} ->
-        {:error, "Prometheus running: could not retrieve ps report"}
-    end
-  end
-
-  defp check_grafana_running(%App{dokku_host: dokku_host}) do
-    case @commands_ps.report(dokku_host) do
-      {:ok, entries} ->
-        web_processes =
-          Enum.filter(entries, &(&1.app == "grafana" and &1.process_type == "web"))
-
-        all_running? = Enum.all?(web_processes, &(&1.state == "running"))
-
-        if all_running? do
-          {:ok, nil}
-        else
-          not_running =
-            web_processes
-            |> Enum.reject(&(&1.state == "running"))
-            |> Enum.map(&"web.#{&1.process_index} is #{&1.state}")
-            |> Enum.join(", ")
-
-          {:error, "Grafana running: #{not_running}"}
-        end
-
-      {:error, _output, _exit_code} ->
-        {:error, "Grafana running: could not retrieve ps report"}
-    end
-  end
-
-  defp check_health_endpoint(%App{dokku_host: dokku_host, dokku_app: dokku_app}) do
-    case @root_command.run(
-           dokku_host,
-           "dokku",
-           ["enter", dokku_app, "web", "--", "wget", "-qO-", @health_url],
-           []
+  defp check_health_endpoint(%App{} = app) do
+    case @commands_enter_app.run(
+           app,
+           "web",
+           ["wget", "-qO-", @health_url]
          ) do
       {:ok, output} ->
         if String.trim(output) == "ok" do
@@ -219,31 +200,39 @@ defmodule DokkuRadar.CLI.Diagnose do
     end
   end
 
-  defp check_ssh_connectivity(%App{dokku_host: dokku_host, dokku_app: dokku_app}) do
-    ssh_cmd =
-      "ssh -o BatchMode=yes -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o StrictHostKeyChecking=no dokku@#{dokku_host} plugin:list"
+  defp check_app_ssh_connectivity(%App{} = app) do
+    ssh_params = dokku_radar_ssh_params()
 
-    case @root_command.run(
-           dokku_host,
-           "dokku",
-           ["enter", dokku_app, "web", "--", "/bin/sh", "-c", ssh_cmd],
-           []
-         ) do
+    case @commands_enter_app.run(app, "web", ssh_params ++ ["apps:help"]) do
       {:ok, _output} ->
         {:ok, nil}
 
       {:error, _output, _exit_code} ->
-        {:error, "SSH: could not connect to dokku on #{dokku_host}"}
+        {:error, "#{app.dokku_app} could not connect to host"}
     end
   end
 
-  defp check_prometheus_targets(%App{dokku_host: dokku_host}) do
-    case @root_command.run(
-           dokku_host,
-           "dokku",
-           ["enter", "prometheus", "web", "--", "wget", "-qO-", @prometheus_targets_url],
-           []
-         ) do
+  defp dokku_radar_ssh_params() do
+    host_ip_for_dokku_radar =
+      System.get_env("HOST_IP_FOR_DOKKU_RADAR") ||
+        raise """
+        environment variable HOST_IP_FOR_DOKKU_RADAR is missing.
+        For example: 172.1.0.1
+        """
+
+    ~w(
+      ssh
+      -o BatchMode=yes
+      -o UserKnownHostsFile=/dev/null
+      -o LogLevel=ERROR
+      -o StrictHostKeyChecking=no
+      -i #{@container_private_key_path}
+      dokku@#{host_ip_for_dokku_radar}
+    )
+  end
+
+  defp check_prometheus_targets(%App{} = app) do
+    case @commands_enter_app.run(app, "web", ["wget", "-qO-", @prometheus_targets_url]) do
       {:ok, output} ->
         case Jason.decode(output) do
           {:ok, %{"data" => %{"activeTargets" => targets}}} ->
