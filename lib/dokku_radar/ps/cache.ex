@@ -55,36 +55,13 @@ defmodule DokkuRadar.Ps.Cache do
   def load() do
     dokku_host = DokkuRadar.DokkuCli.dokku_host!()
 
-    case @commands_ps.report(dokku_host) do
-      {:ok, entries} ->
-        app_names = entries |> Enum.map(& &1.app) |> Enum.uniq()
-        scales = load_scales(dokku_host, app_names)
-        {:update, %{entries: entries, scales: scales}}
-
+    with {:ok, entries} <- @commands_ps.report(dokku_host),
+         {:ok, scales} <- @commands_ps.scale(dokku_host) do
+      {:update, %{entries: entries, scales: scales}}
+    else
       {:error, output, exit_code} ->
-        Logger.warning("Failed to run ps:report", exit_code: exit_code, output: output)
+        Logger.warning("Failed to obtain PS information", exit_code: exit_code, output: output)
         {:error, {output, exit_code}}
     end
-  end
-
-  defp load_scales(dokku_host, app_names) do
-    Map.new(app_names, fn app ->
-      scale =
-        case @commands_ps.scale(dokku_host, app) do
-          {:ok, ps_scale} ->
-            ps_scale.proctypes
-
-          {:error, output, exit_code} ->
-            Logger.warning("Failed to run ps:scale",
-              app: app,
-              exit_code: exit_code,
-              output: output
-            )
-
-            %{}
-        end
-
-      {app, scale}
-    end)
   end
 end
