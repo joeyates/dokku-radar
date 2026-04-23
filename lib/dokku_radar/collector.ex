@@ -71,23 +71,23 @@ defmodule DokkuRadar.Collector do
   end
 
   defp fetch_all_stats(ps_reports) do
-    Map.new(
-      Enum.flat_map(ps_reports, fn {_app_name, report} ->
-        Enum.map(report.status_entries, fn entry ->
-          {entry.cid, @docker_client.container_stats(entry.cid)}
-        end)
+    ps_reports
+    |> Enum.flat_map(fn {_app_name, report} ->
+      Enum.map(report.status_entries, fn entry ->
+        {entry.cid, @docker_client.container_stats(entry.cid)}
       end)
-    )
+    end)
+    |> Map.new()
   end
 
   defp fetch_all_inspects(ps_reports) do
-    Map.new(
-      Enum.flat_map(ps_reports, fn {_app_name, report} ->
-        Enum.map(report.status_entries, fn entry ->
-          {entry.cid, @docker_client.container_inspect(entry.cid)}
-        end)
+    ps_reports
+    |> Enum.flat_map(fn {_app_name, report} ->
+      Enum.map(report.status_entries, fn entry ->
+        {entry.cid, @docker_client.container_inspect(entry.cid)}
       end)
-    )
+    end)
+    |> Map.new()
   end
 
   defp fetch_all_scales(app_names) do
