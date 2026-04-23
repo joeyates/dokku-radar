@@ -264,7 +264,7 @@ check the correct functioning and installation of the project.
 
 # Fix `DokkuRadar.Collector` — align with actual types
 
-Status: [ ]
+Status: [x]
 
 ## Description
 
