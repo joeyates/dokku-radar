@@ -31,7 +31,7 @@ defmodule DokkuRadar.Services.ServicePlugins do
         {:ok, types}
 
       {:error, output, exit_code} ->
-        Logger.warning("SSH call to list plugins failed",
+        Logger.warning("Dokku call to list plugins failed",
           exit_code: exit_code,
           output: String.slice(output, 0, 200)
         )

@@ -1,8 +1,14 @@
 defmodule DokkuRadar.CLI do
+  alias __MODULE__.Diagnose
   alias __MODULE__.Setup
   alias DokkuRemote.App
 
   @commands [
+    %{
+      commands: ["diagnose"],
+      description: "Run diagnostic checks against a live deployment",
+      switches: []
+    },
     %{
       commands: ["setup"],
       description: "Set up the Dokku app, plus Prometheus and Grafana",
@@ -28,6 +34,10 @@ defmodule DokkuRadar.CLI do
 
   def run(args) do
     case HelpfulOptions.parse_commands(args, @commands) do
+      {:ok, %{commands: ["diagnose"], switches: switches}} ->
+        %App{} = dokku_radar_app = dokku_radar_app_fom_env!(switches)
+        :ok = Diagnose.run(dokku_radar_app)
+
       {:ok, %{commands: ["setup"], switches: switches}} ->
         admin_email = Map.fetch!(switches, :admin_email)
         grafana_domain = Map.fetch!(switches, :grafana_domain)

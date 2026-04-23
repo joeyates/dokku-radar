@@ -19,16 +19,6 @@ defmodule DokkuRadar.Ps.CacheTest do
     %{app: "my-api", process_type: "web", process_index: 1, state: "running", cid: "4a2b9c0d1e2"}
   ]
 
-  @blog_cms_scale %DokkuRemote.Commands.Ps.Scale{
-    app_name: "blog-cms",
-    proctypes: %{"web" => 1}
-  }
-
-  @my_api_scale %DokkuRemote.Commands.Ps.Scale{
-    app_name: "my-api",
-    proctypes: %{"web" => 2}
-  }
-
   @base_opts [name: nil, refresh_interval: nil]
 
   defp wait_for_ready(pid) do
@@ -39,15 +29,24 @@ defmodule DokkuRadar.Ps.CacheTest do
   end
 
   setup do
-    expect(DokkuRemote.Commands.Ps.Mock, :report, fn _host ->
+    stub(DokkuRemote.Commands.Ps.Mock, :report, fn _host ->
       {:ok, @entries}
     end)
 
-    expect(DokkuRemote.Commands.Ps.Mock, :scale, 2, fn _host, app ->
-      case app do
-        "blog-cms" -> {:ok, @blog_cms_scale}
-        "my-api" -> {:ok, @my_api_scale}
-      end
+    stub(DokkuRemote.Commands.Ps.Mock, :scale, fn _host ->
+      {
+        :ok,
+        %{
+          "blog-cms" => %DokkuRemote.Commands.Ps.Scale{
+            app_name: "blog-cms",
+            proctypes: %{"web" => 1}
+          },
+          "my-api" => %DokkuRemote.Commands.Ps.Scale{
+            app_name: "my-api",
+            proctypes: %{"web" => 2}
+          }
+        }
+      }
     end)
 
     start_supervised!({Task.Supervisor, name: DokkuRadar.TaskSupervisor})
@@ -68,12 +67,12 @@ defmodule DokkuRadar.Ps.CacheTest do
   describe "scale/1" do
     test "returns scale for requested app", %{pid: pid} do
       assert {:ok, scale} = Cache.scale("blog-cms", pid)
-      assert scale["web"] == 1
+      assert scale.proctypes["web"] == 1
     end
 
     test "returns scale for another app", %{pid: pid} do
       assert {:ok, scale} = Cache.scale("my-api", pid)
-      assert scale["web"] == 2
+      assert scale.proctypes["web"] == 2
     end
 
     test "returns {:error, :not_found} for unknown app", %{pid: pid} do
