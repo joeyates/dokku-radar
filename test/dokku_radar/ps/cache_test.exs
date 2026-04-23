@@ -4,19 +4,43 @@ defmodule DokkuRadar.Ps.CacheTest do
   import Mox
 
   alias DokkuRadar.Ps.Cache
+  alias DokkuRemote.Commands.Ps.Report
+  alias DokkuRemote.Commands.Ps.Scale
 
   setup :set_mox_global
   setup :verify_on_exit!
 
-  @entries [
-    %{
-      app: "blog-cms",
-      process_type: "web",
-      process_index: 1,
-      state: "running",
-      cid: "37d851b84ba"
+  @reports [
+    %Report{
+      app_name: "blog-cms",
+      computed_stop_timeout_seconds: nil,
+      deployed: nil,
+      global_stop_timeout_seconds: nil,
+      processes: nil,
+      ps_can_scale: nil,
+      ps_computed_procfile_path: nil,
+      ps_global_procfile_path: nil,
+      ps_procfile_path: nil,
+      ps_restart_policy: nil,
+      restore: nil,
+      running: nil,
+      stop_timeout_seconds: nil
     },
-    %{app: "my-api", process_type: "web", process_index: 1, state: "running", cid: "4a2b9c0d1e2"}
+    %Report{
+      app_name: "my-api",
+      computed_stop_timeout_seconds: nil,
+      deployed: nil,
+      global_stop_timeout_seconds: nil,
+      processes: nil,
+      ps_can_scale: nil,
+      ps_computed_procfile_path: nil,
+      ps_global_procfile_path: nil,
+      ps_procfile_path: nil,
+      ps_restart_policy: nil,
+      restore: nil,
+      running: nil,
+      stop_timeout_seconds: nil
+    }
   ]
   @scales %{
     "blog-cms" => %{proctypes: %{"web" => 1}},
@@ -34,16 +58,13 @@ defmodule DokkuRadar.Ps.CacheTest do
 
   setup do
     stub(DokkuRemote.Commands.Ps.Mock, :report, fn _host ->
-      {:ok, @entries}
+      {:ok, @reports}
     end)
 
     stub(DokkuRemote.Commands.Ps.App.Mock, :scale, fn app ->
       {
         :ok,
-        struct(
-          DokkuRemote.Commands.Ps.Scale,
-          Map.merge(%{app_name: app.dokku_app}, @scales[app.dokku_app])
-        )
+        struct(Scale, Map.merge(%{app_name: app.dokku_app}, @scales[app.dokku_app]))
       }
     end)
 
@@ -54,10 +75,10 @@ defmodule DokkuRadar.Ps.CacheTest do
   end
 
   describe "list/0" do
-    test "returns cached ps entries after init", %{pid: pid} do
-      assert {:ok, entries} = Cache.list(pid)
-      assert length(entries) == 2
-      apps = entries |> Enum.map(& &1.app) |> Enum.sort()
+    test "returns cached ps reports after init", %{pid: pid} do
+      assert {:ok, reports} = Cache.list(pid)
+      assert length(reports) == 2
+      apps = reports |> Enum.map(& &1.app_name) |> Enum.sort()
       assert apps == ["blog-cms", "my-api"]
     end
   end

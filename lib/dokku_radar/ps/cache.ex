@@ -75,7 +75,7 @@ defmodule DokkuRadar.Ps.Cache do
 
   defp fetch_app_scales(dokku_host, reports) do
     reports
-    |> Enum.map(& &1.app)
+    |> Enum.map(& &1.app_name)
     |> Enum.uniq()
     |> Enum.map(fn app -> %App{dokku_app: app, dokku_host: dokku_host} end)
     |> Enum.reduce_while(%{}, fn app, acc ->
