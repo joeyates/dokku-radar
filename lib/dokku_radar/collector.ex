@@ -71,17 +71,23 @@ defmodule DokkuRadar.Collector do
   end
 
   defp fetch_all_stats(ps_reports) do
-    Map.new(ps_reports, fn {_app_name, report} ->
-      cid = report.cid
-      {cid, @docker_client.container_stats(cid)}
-    end)
+    Map.new(
+      Enum.flat_map(ps_reports, fn {_app_name, report} ->
+        Enum.map(report.status_entries, fn entry ->
+          {entry.cid, @docker_client.container_stats(entry.cid)}
+        end)
+      end)
+    )
   end
 
   defp fetch_all_inspects(ps_reports) do
-    Map.new(ps_reports, fn {_app_name, report} ->
-      cid = report.cid
-      {cid, @docker_client.container_inspect(cid)}
-    end)
+    Map.new(
+      Enum.flat_map(ps_reports, fn {_app_name, report} ->
+        Enum.map(report.status_entries, fn entry ->
+          {entry.cid, @docker_client.container_inspect(entry.cid)}
+        end)
+      end)
+    )
   end
 
   defp fetch_all_scales(app_names) do
@@ -108,7 +114,7 @@ defmodule DokkuRadar.Collector do
     samples =
       Enum.flat_map(scales_by_app, fn
         {app, {:ok, scale}} ->
-          Enum.map(scale, fn {process_type, count} ->
+          Enum.map(scale.proctypes, fn {process_type, count} ->
             %{labels: %{"app" => app, "process_type" => process_type}, value: count}
           end)
 
@@ -136,7 +142,7 @@ defmodule DokkuRadar.Collector do
       |> Enum.filter(& &1.running)
       |> Enum.group_by(fn entry -> {entry.app_name, entry.process_name} end)
       |> Enum.map(fn {{app_name, process_name}, entries} ->
-        %{labels: %{"app" => app_name, "process_name" => process_name}, value: length(entries)}
+        %{labels: %{"app" => app_name, "process_type" => process_name}, value: length(entries)}
       end)
 
     %{
@@ -149,17 +155,21 @@ defmodule DokkuRadar.Collector do
 
   defp container_state_metric(ps_reports) do
     samples =
-      Enum.map(ps_reports, fn entry ->
-        %{
-          labels: %{
-            "app" => entry.app,
-            "container_id" => entry.cid,
-            "process_type" => entry.process_type,
-            "process_index" => to_string(entry.process_index),
-            "state" => entry.state
-          },
-          value: 1
-        }
+      Enum.flat_map(ps_reports, fn {_app_name, report} ->
+        Enum.map(report.status_entries, fn entry ->
+          state = if entry.running, do: "running", else: "exited"
+
+          %{
+            labels: %{
+              "app" => report.app_name,
+              "container_id" => entry.cid,
+              "process_type" => entry.process_name,
+              "process_index" => to_string(entry.index),
+              "state" => state
+            },
+            value: 1
+          }
+        end)
       end)
 
     %{
@@ -172,24 +182,26 @@ defmodule DokkuRadar.Collector do
 
   defp container_restarts_metric(ps_reports, inspects_by_id) do
     samples =
-      Enum.flat_map(ps_reports, fn entry ->
-        case inspects_by_id[entry.cid] do
-          {:ok, inspect_data} ->
-            [
-              %{
-                labels: %{
-                  "app" => entry.app,
-                  "container_id" => entry.cid,
-                  "process_type" => entry.process_type,
-                  "process_index" => to_string(entry.process_index)
-                },
-                value: get_in(inspect_data, ["State", "RestartCount"]) || 0
-              }
-            ]
+      Enum.flat_map(ps_reports, fn {_app_name, report} ->
+        Enum.flat_map(report.status_entries, fn entry ->
+          case inspects_by_id[entry.cid] do
+            {:ok, inspect_data} ->
+              [
+                %{
+                  labels: %{
+                    "app" => report.app_name,
+                    "container_id" => entry.cid,
+                    "process_type" => entry.process_name,
+                    "process_index" => to_string(entry.index)
+                  },
+                  value: get_in(inspect_data, ["State", "RestartCount"]) || 0
+                }
+              ]
 
-          _ ->
-            []
-        end
+            _ ->
+              []
+          end
+        end)
       end)
 
     %{
@@ -230,21 +242,23 @@ defmodule DokkuRadar.Collector do
 
   defp cpu_usage_metric(ps_reports, stats_by_id) do
     samples =
-      Enum.flat_map(ps_reports, fn entry ->
-        case stats_by_id[entry.cid] do
-          {:ok, stats} ->
-            total_ns = get_in(stats, ["cpu_stats", "cpu_usage", "total_usage"]) || 0
+      Enum.flat_map(ps_reports, fn {_app_name, report} ->
+        Enum.flat_map(report.status_entries, fn entry ->
+          case stats_by_id[entry.cid] do
+            {:ok, stats} ->
+              total_ns = get_in(stats, ["cpu_stats", "cpu_usage", "total_usage"]) || 0
 
-            [
-              %{
-                labels: %{"app" => entry.app, "container_id" => entry.cid},
-                value: total_ns / 1_000_000_000
-              }
-            ]
+              [
+                %{
+                  labels: %{"app" => report.app_name, "container_id" => entry.cid},
+                  value: total_ns / 1_000_000_000
+                }
+              ]
 
-          _ ->
-            []
-        end
+            _ ->
+              []
+          end
+        end)
       end)
 
     %{
@@ -257,21 +271,23 @@ defmodule DokkuRadar.Collector do
 
   defp memory_usage_metric(ps_reports, stats_by_id) do
     samples =
-      Enum.flat_map(ps_reports, fn entry ->
-        case stats_by_id[entry.cid] do
-          {:ok, stats} ->
-            usage = get_in(stats, ["memory_stats", "usage"]) || 0
+      Enum.flat_map(ps_reports, fn {_app_name, report} ->
+        Enum.flat_map(report.status_entries, fn entry ->
+          case stats_by_id[entry.cid] do
+            {:ok, stats} ->
+              usage = get_in(stats, ["memory_stats", "usage"]) || 0
 
-            [
-              %{
-                labels: %{"app" => entry.app, "container_id" => entry.cid},
-                value: usage
-              }
-            ]
+              [
+                %{
+                  labels: %{"app" => report.app_name, "container_id" => entry.cid},
+                  value: usage
+                }
+              ]
 
-          _ ->
-            []
-        end
+            _ ->
+              []
+          end
+        end)
       end)
 
     %{

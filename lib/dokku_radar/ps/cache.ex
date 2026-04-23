@@ -20,13 +20,13 @@ defmodule DokkuRadar.Ps.Cache do
   #################
   # Client API
 
-  @callback list() :: {:ok, [map()]} | {:error, term()}
-  @callback scale(String.t()) :: {:ok, %{String.t() => non_neg_integer()}} | {:error, term()}
-
+  @callback list() ::
+              {:ok, %{String.t() => DokkuRemote.Commands.Ps.Report.t()}} | {:error, term()}
   def list(server \\ __MODULE__) do
     GenServer.call(server, :list)
   end
 
+  @callback scale(String.t()) :: {:ok, DokkuRemote.Commands.Ps.Scale.t()} | {:error, term()}
   def scale(app_name, server \\ __MODULE__) do
     GenServer.call(server, {:scale, app_name})
   end

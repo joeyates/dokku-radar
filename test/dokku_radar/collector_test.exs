@@ -30,13 +30,13 @@ defmodule DokkuRadar.CollectorTest do
       stub(DokkuRadar.Services.Mock, :service_links, fn ->
         {:ok,
          [
-           %DokkuRadar.Services.Cache{
+           %DokkuRadar.Services.Service{
              type: "postgres",
              name: "my-db",
              status: "running",
              links: ["my-app"]
            },
-           %DokkuRadar.Services.Cache{
+           %DokkuRadar.Services.Service{
              type: "postgres",
              name: "shared-db",
              status: "running",
@@ -63,13 +63,13 @@ defmodule DokkuRadar.CollectorTest do
       stub(DokkuRadar.Services.Mock, :service_links, fn ->
         {:ok,
          [
-           %DokkuRadar.Services.Cache{
+           %DokkuRadar.Services.Service{
              type: "postgres",
              name: "my-db",
              status: "running",
              links: ["my-app"]
            },
-           %DokkuRadar.Services.Cache{
+           %DokkuRadar.Services.Service{
              type: "redis",
              name: "cache",
              status: "stopped",
@@ -139,9 +139,9 @@ defmodule DokkuRadar.CollectorTest do
 
     test "counts running processes by app and process type" do
       ps_entries = [
-        ps_entry("my-app", "web", 1, "running", "aaa11111111"),
-        ps_entry("my-app", "web", 2, "running", "bbb22222222"),
-        ps_entry("my-app", "web", 3, "exited", "ccc33333333")
+        status_entry("web", 1, true, "aaa11111111"),
+        status_entry("web", 2, true, "bbb22222222"),
+        status_entry("web", 3, false, "ccc33333333")
       ]
 
       containers = [
@@ -152,8 +152,8 @@ defmodule DokkuRadar.CollectorTest do
 
       setup_expectations(
         containers: containers,
-        ps_report: ps_entries,
-        scales: %{"my-app" => {:ok, %{"web" => 3}}},
+        ps_report: %{"my-app" => ps_report("my-app", ps_entries)},
+        scales: %{"my-app" => {:ok, ps_scale("my-app", %{"web" => 3})}},
         cert_expiries: %{"my-app" => {:error, :no_cert}}
       )
 
@@ -197,7 +197,7 @@ defmodule DokkuRadar.CollectorTest do
 
       setup_expectations(
         containers: containers,
-        scales: %{"my-app" => {:ok, %{"web" => 2}}},
+        scales: %{"my-app" => {:ok, ps_scale("my-app", %{"web" => 2})}},
         cert_expiries: %{"my-app" => {:error, :no_cert}},
         git_reports: %{"my-app" => {:ok, 1_775_125_215}}
       )
@@ -239,7 +239,7 @@ defmodule DokkuRadar.CollectorTest do
 
     test "filters out non-Dokku containers" do
       # PsReport only returns Dokku processes, so non-Dokku containers are naturally excluded
-      ps_entries = [ps_entry("my-app", "web", 1, "running", "aaa11111111")]
+      ps_entries = [status_entry("web", 1, true, "aaa11111111")]
 
       containers = [
         dokku_container("aaa11111111", "my-app", "web", 1, "running", 1_700_000_000),
@@ -254,8 +254,8 @@ defmodule DokkuRadar.CollectorTest do
 
       setup_expectations(
         containers: containers,
-        ps_report: ps_entries,
-        scales: %{"my-app" => {:ok, %{"web" => 1}}},
+        ps_report: %{"my-app" => ps_report("my-app", ps_entries)},
+        scales: %{"my-app" => {:ok, ps_scale("my-app", %{"web" => 1})}},
         cert_expiries: %{"my-app" => {:error, :no_cert}}
       )
 
@@ -278,13 +278,16 @@ defmodule DokkuRadar.CollectorTest do
       end)
 
       expect(DokkuRadar.Ps.Mock, :scale, fn "my-app" ->
-        {:ok, %{"web" => 1}}
+        {:ok, ps_scale("my-app", %{"web" => 1})}
       end)
 
       expect(DokkuRadar.Certs.Mock, :list, fn -> {:ok, %{}} end)
 
+      entry = status_entry("web", 1, true, "aaa11111111")
+      report = ps_report("my-app", [entry])
+
       expect(DokkuRadar.Ps.Mock, :list, fn ->
-        {:ok, [ps_entry("my-app", "web", 1, "running", "aaa11111111")]}
+        {:ok, %{"my-app" => report}}
       end)
 
       expect(DokkuRadar.Git.Mock, :last_deploy_timestamps, fn ->
@@ -316,13 +319,16 @@ defmodule DokkuRadar.CollectorTest do
       end)
 
       expect(DokkuRadar.Ps.Mock, :scale, fn "my-app" ->
-        {:ok, %{"web" => 1}}
+        {:ok, ps_scale("my-app", %{"web" => 1})}
       end)
 
       expect(DokkuRadar.Certs.Mock, :list, fn -> {:ok, %{}} end)
 
+      entry = status_entry("web", 1, true, "aaa11111111")
+      report = ps_report("my-app", [entry])
+
       expect(DokkuRadar.Ps.Mock, :list, fn ->
-        {:ok, [ps_entry("my-app", "web", 1, "running", "aaa11111111")]}
+        {:ok, %{"my-app" => report}}
       end)
 
       expect(DokkuRadar.Git.Mock, :last_deploy_timestamps, fn ->
@@ -390,8 +396,36 @@ defmodule DokkuRadar.CollectorTest do
     }
   end
 
-  defp ps_entry(app, process_type, process_index, state, cid) do
-    %{app: app, process_type: process_type, process_index: process_index, state: state, cid: cid}
+  defp status_entry(process_name, index, running, cid) do
+    %DokkuRemote.Commands.Ps.Report.StatusEntry{
+      process_name: process_name,
+      index: index,
+      running: running,
+      cid: cid
+    }
+  end
+
+  defp ps_report(app_name, status_entries) do
+    %DokkuRemote.Commands.Ps.Report{
+      app_name: app_name,
+      computed_stop_timeout_seconds: 60,
+      deployed: true,
+      global_stop_timeout_seconds: 60,
+      processes: length(status_entries),
+      ps_can_scale: true,
+      ps_computed_procfile_path: nil,
+      ps_global_procfile_path: nil,
+      ps_procfile_path: nil,
+      ps_restart_policy: nil,
+      restore: true,
+      running: Enum.any?(status_entries, & &1.running),
+      stop_timeout_seconds: 60,
+      status_entries: status_entries
+    }
+  end
+
+  defp ps_scale(app_name, proctypes) do
+    %DokkuRemote.Commands.Ps.Scale{app_name: app_name, proctypes: proctypes}
   end
 
   defp setup_single_app_expectations(overrides \\ []) do
@@ -405,7 +439,7 @@ defmodule DokkuRadar.CollectorTest do
     cert_expiry =
       Keyword.get(overrides, :cert_expiry, {:ok, ~U[2026-07-08 12:00:00Z]})
 
-    scale_result = if is_map(scale), do: {:ok, scale}, else: scale
+    scale_result = if is_map(scale), do: {:ok, ps_scale("my-app", scale)}, else: scale
 
     expect(DokkuRadar.DockerClient.Mock, :container_stats, fn ^cid ->
       {:ok, default_stats(cpu_ns: cpu_ns, memory_bytes: memory_bytes)}
@@ -427,8 +461,11 @@ defmodule DokkuRadar.CollectorTest do
 
     expect(DokkuRadar.Certs.Mock, :list, fn -> certs_list_result end)
 
+    entry = status_entry("web", 1, true, cid)
+    report = ps_report("my-app", [entry])
+
     expect(DokkuRadar.Ps.Mock, :list, fn ->
-      {:ok, [ps_entry("my-app", "web", 1, "running", cid)]}
+      {:ok, %{"my-app" => report}}
     end)
 
     expect(DokkuRadar.Git.Mock, :last_deploy_timestamps, fn ->
@@ -451,20 +488,25 @@ defmodule DokkuRadar.CollectorTest do
     dokku_containers =
       Enum.filter(containers, &(&1["Labels"]["com.dokku.app-name"] != nil))
 
-    ps_report_entries =
+    ps_reports =
       Keyword.get_lazy(opts, :ps_report, fn ->
-        Enum.flat_map(dokku_containers, fn cont ->
+        dokku_containers
+        |> Enum.map(fn cont ->
           app = cont["Labels"]["com.dokku.app-name"]
           name = hd(cont["Names"] || [""])
           name = String.trim_leading(name, "/")
           parts = String.split(name, ".")
           type = Enum.at(parts, 1, "web")
           index = parts |> List.last("1") |> String.to_integer()
-          [ps_entry(app, type, index, cont["State"], cont["Id"])]
+          running = cont["State"] == "running"
+          entry = status_entry(type, index, running, cont["Id"])
+          {app, entry}
         end)
+        |> Enum.group_by(fn {app, _entry} -> app end, fn {_app, entry} -> entry end)
+        |> Map.new(fn {app_name, entries} -> {app_name, ps_report(app_name, entries)} end)
       end)
 
-    for entry <- ps_report_entries do
+    for {_app_name, report} <- ps_reports, entry <- report.status_entries do
       cid = entry.cid
 
       expect(DokkuRadar.DockerClient.Mock, :container_stats, fn ^cid ->
@@ -476,13 +518,10 @@ defmodule DokkuRadar.CollectorTest do
       end)
     end
 
-    app_names =
-      ps_report_entries
-      |> Enum.map(& &1.app)
-      |> Enum.uniq()
+    app_names = Map.keys(ps_reports)
 
     for app <- app_names do
-      scale_result = Map.get(scales, app, {:ok, %{"web" => 1}})
+      scale_result = Map.get(scales, app, {:ok, ps_scale(app, %{"web" => 1})})
 
       expect(DokkuRadar.Ps.Mock, :scale, fn ^app ->
         scale_result
@@ -499,6 +538,6 @@ defmodule DokkuRadar.CollectorTest do
     certs_map = for {app, {:ok, dt}} <- cert_expiries, into: %{}, do: {app, dt}
     expect(DokkuRadar.Certs.Mock, :list, fn -> {:ok, certs_map} end)
 
-    expect(DokkuRadar.Ps.Mock, :list, fn -> {:ok, ps_report_entries} end)
+    expect(DokkuRadar.Ps.Mock, :list, fn -> {:ok, ps_reports} end)
   end
 end

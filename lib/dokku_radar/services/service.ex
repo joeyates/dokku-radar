@@ -1,4 +1,6 @@
 defmodule DokkuRadar.Services.Service do
+  defstruct [:type, :name, links: [], status: "running"]
+
   @callback links(String.t(), String.t()) :: {:ok, [String.t()]} | {:error, term()}
 
   @postgres Application.compile_env(
