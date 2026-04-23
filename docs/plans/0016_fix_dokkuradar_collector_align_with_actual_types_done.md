@@ -21,20 +21,20 @@ Key problems:
 
 ## Tasks
 
-- [ ] 1. Move the service struct `defstruct [:type, :name, links: [], status: "running"]` from `DokkuRadar.Services.Cache` into `DokkuRadar.Services.Service`, and update `Services.Cache` to alias and use `DokkuRadar.Services.Service` by name.
-- [ ] 2. Update `DokkuRadar.Ps` callback specs:
+- [x] 1. Move the service struct `defstruct [:type, :name, links: [], status: "running"]` from `DokkuRadar.Services.Cache` into `DokkuRadar.Services.Service`, and update `Services.Cache` to alias and use `DokkuRadar.Services.Service` by name.
+- [x] 2. Update `DokkuRadar.Ps` callback specs:
   - `list/0` → `{:ok, %{String.t() => DokkuRemote.Commands.Ps.Report.t()}} | {:error, term()}`
   - `scale/1` → `{:ok, DokkuRemote.Commands.Ps.Scale.t()} | {:error, term()}`
   Also update the matching specs in `DokkuRadar.Ps.Cache`.
-- [ ] 3. Fix `fetch_all_stats/1` and `fetch_all_inspects/1` in `Collector`: iterate `{_app_name, report}` pairs and then each `status_entry` in `report.status_entries` to build the `cid`-keyed map.
-- [ ] 4. Fix `container_state_metric/1`: iterate `{app_name, report}` pairs, then `report.status_entries`; use `entry.process_name` for the `"process_type"` label, `entry.index` for `"process_index"`, `entry.cid` for `"container_id"`, and derive `state` from `if entry.running, do: "running", else: "exited"`.
-- [ ] 5. Fix `container_restarts_metric/2`: same structural change — nested iteration over ps_reports and status_entries to look up `inspects_by_id[entry.cid]`.
-- [ ] 6. Fix `cpu_usage_metric/2` and `memory_usage_metric/2`: nested iteration over ps_reports and status_entries to look up `stats_by_id[entry.cid]`; use `report.app_name` for the `"app"` label.
-- [ ] 7. Fix `processes_configured_metric/1`: change `Enum.map(scale, ...)` to `Enum.map(scale.proctypes, ...)`.
-- [ ] 8. Fix `processes_running_metric/1`: change the label key from `"process_name"` to `"process_type"`.
-- [ ] 9. Update `collector_test.exs`: replace the `ps_entry/5` plain-map helper with helpers that build `DokkuRemote.Commands.Ps.Report.t()` (with `status_entries: [StatusEntry.t()]`), and replace bare `%{"web" => 1}` scale results with `%DokkuRemote.Commands.Ps.Scale{app_name: ..., proctypes: ...}`.
-- [ ] 10. Ask the user for feedback on the state of the implementation and carry out any requested corrections.
-- [ ] 11. Mark the plan as "done".
+- [x] 3. Fix `fetch_all_stats/1` and `fetch_all_inspects/1` in `Collector`: iterate `{_app_name, report}` pairs and then each `status_entry` in `report.status_entries` to build the `cid`-keyed map.
+- [x] 4. Fix `container_state_metric/1`: iterate `{app_name, report}` pairs, then `report.status_entries`; use `entry.process_name` for the `"process_type"` label, `entry.index` for `"process_index"`, `entry.cid` for `"container_id"`, and derive `state` from `if entry.running, do: "running", else: "exited"`.
+- [x] 5. Fix `container_restarts_metric/2`: same structural change — nested iteration over ps_reports and status_entries to look up `inspects_by_id[entry.cid]`.
+- [x] 6. Fix `cpu_usage_metric/2` and `memory_usage_metric/2`: nested iteration over ps_reports and status_entries to look up `stats_by_id[entry.cid]`; use `report.app_name` for the `"app"` label.
+- [x] 7. Fix `processes_configured_metric/1`: change `Enum.map(scale, ...)` to `Enum.map(scale.proctypes, ...)`.
+- [x] 8. Fix `processes_running_metric/1`: change the label key from `"process_name"` to `"process_type"`.
+- [x] 9. Update `collector_test.exs`: replace the `ps_entry/5` plain-map helper with helpers that build `DokkuRemote.Commands.Ps.Report.t()` (with `status_entries: [StatusEntry.t()]`), and replace bare `%{"web" => 1}` scale results with `%DokkuRemote.Commands.Ps.Scale{app_name: ..., proctypes: ...}`.
+- [x] 10. Ask the user for feedback on the state of the implementation and carry out any requested corrections.
+- [x] 11. Mark the plan as "done".
 
 ## Principal Files
 
