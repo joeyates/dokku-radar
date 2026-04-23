@@ -261,3 +261,17 @@ check the correct functioning and installation of the project.
 
 - Use `DokkuRemote.Commands` calls to fetch data from the deployed project.
 - Use docs/system-checks.md` and `docs/troubleshooting.md` for a basis of what to check.
+
+# Fix `DokkuRadar.Collector` — align with actual types
+
+Status: [ ]
+
+## Description
+
+`DokkuRadar.Collector` contains several type mismatches against the structs returned by `DokkuRemote` and the project's own cache modules. Fix all mismatches so the collector produces output compatible with `grafana/dashboard.json`.
+
+## Technical Specifics
+
+- Audit every access to `ps_reports` entries against `DokkuRemote.Commands.Ps.Report.t()` and `DokkuRemote.Commands.Ps.Report.StatusEntry.t()`.
+- Audit `scale` values against `DokkuRemote.Commands.Ps.Scale.t()` (which has a `proctypes` map, not bare `{process_type, count}` pairs).
+- Verify metric label keys (`"app"`, `"process_type"`, `"process_name"`, etc.) match the Prometheus queries in `grafana/dashboard.json`.
