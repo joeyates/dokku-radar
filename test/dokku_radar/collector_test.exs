@@ -30,13 +30,13 @@ defmodule DokkuRadar.CollectorTest do
       stub(DokkuRadar.Services.Mock, :service_links, fn ->
         {:ok,
          [
-           %DokkuRadar.Services.Cache{
+           %DokkuRadar.Services.Service{
              type: "postgres",
              name: "my-db",
              status: "running",
              links: ["my-app"]
            },
-           %DokkuRadar.Services.Cache{
+           %DokkuRadar.Services.Service{
              type: "postgres",
              name: "shared-db",
              status: "running",
@@ -63,13 +63,13 @@ defmodule DokkuRadar.CollectorTest do
       stub(DokkuRadar.Services.Mock, :service_links, fn ->
         {:ok,
          [
-           %DokkuRadar.Services.Cache{
+           %DokkuRadar.Services.Service{
              type: "postgres",
              name: "my-db",
              status: "running",
              links: ["my-app"]
            },
-           %DokkuRadar.Services.Cache{
+           %DokkuRadar.Services.Service{
              type: "redis",
              name: "cache",
              status: "stopped",

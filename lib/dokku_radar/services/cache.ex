@@ -1,9 +1,9 @@
 defmodule DokkuRadar.Services.Cache do
   use DokkuRadar.DokkuCli.Cache, interval: :timer.minutes(10)
 
-  require Logger
+  alias DokkuRadar.Services.Service
 
-  defstruct [:type, :name, links: [], status: "running"]
+  require Logger
 
   @service_plugins Application.compile_env(
                      :dokku_radar,
@@ -81,7 +81,7 @@ defmodule DokkuRadar.Services.Cache do
         Enum.map(plugin_services, fn plugin_service ->
           case @service.links(plugin, plugin_service) do
             {:ok, links} ->
-              %__MODULE__{type: plugin, name: plugin_service, links: links}
+              %Service{type: plugin, name: plugin_service, links: links}
           end
         end)
       end)
