@@ -65,6 +65,33 @@ defmodule DokkuRadar.Certs.CacheTest do
     end
   end
 
+  describe "when some apps have no SSL cert" do
+    test "excludes apps with no expiry from results" do
+      no_cert_report = %DokkuRemote.Commands.Certs.Report{
+        app_name: "no-cert-app",
+        dir: "/home/dokku/no-cert-app/tls",
+        enabled: false
+      }
+
+      reports = %{
+        "blog-cms" => cert_report("blog-cms", "Jul  1 08:39:08 2026 GMT"),
+        "no-cert-app" => no_cert_report
+      }
+
+      stub(DokkuRemote.Commands.Certs.Mock, :report, fn _host ->
+        {:ok, reports}
+      end)
+
+      pid = start_supervised!({Cache, [name: nil, refresh_interval: nil]}, id: :no_cert_cache)
+      wait_for_ready(pid)
+
+      assert {:ok, expiries} = Cache.list(pid)
+      assert map_size(expiries) == 1
+      assert Map.has_key?(expiries, "blog-cms")
+      refute Map.has_key?(expiries, "no-cert-app")
+    end
+  end
+
   describe "when DokkuRemote.Commands.Certs fails" do
     setup do
       expect(DokkuRemote.Commands.Certs.Mock, :report, fn _host ->

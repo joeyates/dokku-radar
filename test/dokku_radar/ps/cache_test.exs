@@ -10,8 +10,8 @@ defmodule DokkuRadar.Ps.CacheTest do
   setup :set_mox_global
   setup :verify_on_exit!
 
-  @reports [
-    %Report{
+  @reports %{
+    "blog-cms" => %Report{
       app_name: "blog-cms",
       computed_stop_timeout_seconds: nil,
       deployed: nil,
@@ -26,7 +26,7 @@ defmodule DokkuRadar.Ps.CacheTest do
       running: nil,
       stop_timeout_seconds: nil
     },
-    %Report{
+    "my-api" => %Report{
       app_name: "my-api",
       computed_stop_timeout_seconds: nil,
       deployed: nil,
@@ -41,7 +41,7 @@ defmodule DokkuRadar.Ps.CacheTest do
       running: nil,
       stop_timeout_seconds: nil
     }
-  ]
+  }
   @scales %{
     "blog-cms" => %{proctypes: %{"web" => 1}},
     "my-api" => %{proctypes: %{"web" => 2}}
@@ -77,8 +77,8 @@ defmodule DokkuRadar.Ps.CacheTest do
   describe "list/0" do
     test "returns cached ps reports after init", %{pid: pid} do
       assert {:ok, reports} = Cache.list(pid)
-      assert length(reports) == 2
-      apps = reports |> Enum.map(& &1.app_name) |> Enum.sort()
+      assert map_size(reports) == 2
+      apps = reports |> Map.keys() |> Enum.sort()
       assert apps == ["blog-cms", "my-api"]
     end
   end

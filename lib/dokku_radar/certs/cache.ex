@@ -42,10 +42,14 @@ defmodule DokkuRadar.Certs.Cache do
     case @commands_certs.report(dokku_host) do
       {:ok, reports} ->
         expiries =
-          Map.new(reports, fn {app, report} ->
-            {:ok, dt} = DokkuRadar.Certs.Report.parse_expiry(report.expires_at)
-            {app, dt}
+          reports
+          |> Enum.flat_map(fn {app, report} ->
+            case report.expires_at && DokkuRadar.Certs.Report.parse_expiry(report.expires_at) do
+              {:ok, dt} -> [{app, dt}]
+              _ -> []
+            end
           end)
+          |> Map.new()
 
         {:update, expiries}
 

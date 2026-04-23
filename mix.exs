@@ -36,7 +36,7 @@ defmodule DokkuRadar.MixProject do
     [
       {:bandit, "~> 1.0"},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:dokku_remote, "~> 0.3.4"},
+      {:dokku_remote, "~> 0.3.5"},
       {:green, "~> 0.1.11", only: :dev},
       {:helpful_options, "~> 0.4.5"},
       {:jason, "~> 1.4"},
