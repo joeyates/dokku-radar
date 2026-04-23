@@ -1,6 +1,4 @@
 defmodule DokkuRadar.Collector do
-  @callback collect() :: {:ok, [map()]} | {:error, term()}
-
   require Logger
 
   @docker_client Application.compile_env(
@@ -29,6 +27,7 @@ defmodule DokkuRadar.Collector do
                     DokkuRadar.Services
                   )
 
+  @callback collect() :: {:ok, [map()]} | {:error, term()}
   def collect() do
     Logger.debug("Starting metrics collection")
 
@@ -40,13 +39,13 @@ defmodule DokkuRadar.Collector do
 
         {:error, reason}
 
-      {:ok, ps_entries} ->
-        app_names = ps_entries |> Enum.map(& &1.app) |> Enum.uniq()
+      {:ok, ps_reports} ->
+        app_names = ps_reports |> Map.keys() |> Enum.uniq()
 
         Logger.info("Collecting metrics", apps: length(app_names))
 
-        stats_by_id = fetch_all_stats(ps_entries)
-        inspects_by_id = fetch_all_inspects(ps_entries)
+        stats_by_id = fetch_all_stats(ps_reports)
+        inspects_by_id = fetch_all_inspects(ps_reports)
         scales_by_app = fetch_all_scales(app_names)
         expiries_by_app = fetch_cert_expiries()
         timestamps_by_app = fetch_git_timestamps()
@@ -54,13 +53,13 @@ defmodule DokkuRadar.Collector do
 
         metrics = [
           processes_configured_metric(scales_by_app),
-          processes_running_metric(ps_entries),
-          container_state_metric(ps_entries),
-          container_restarts_metric(ps_entries, inspects_by_id),
+          processes_running_metric(ps_reports),
+          container_state_metric(ps_reports),
+          container_restarts_metric(ps_reports, inspects_by_id),
           last_deploy_metric(timestamps_by_app),
           ssl_cert_expiry_metric(expiries_by_app),
-          cpu_usage_metric(ps_entries, stats_by_id),
-          memory_usage_metric(ps_entries, stats_by_id),
+          cpu_usage_metric(ps_reports, stats_by_id),
+          memory_usage_metric(ps_reports, stats_by_id),
           service_linked_metric(cached_services),
           service_status_metric(cached_services)
         ]
@@ -71,23 +70,23 @@ defmodule DokkuRadar.Collector do
     end
   end
 
-  defp fetch_all_stats(ps_entries) do
-    Map.new(ps_entries, fn entry ->
-      cid = entry.cid
+  defp fetch_all_stats(ps_reports) do
+    Map.new(ps_reports, fn {_app_name, report} ->
+      cid = report.cid
       {cid, @docker_client.container_stats(cid)}
     end)
   end
 
-  defp fetch_all_inspects(ps_entries) do
-    Map.new(ps_entries, fn entry ->
-      cid = entry.cid
+  defp fetch_all_inspects(ps_reports) do
+    Map.new(ps_reports, fn {_app_name, report} ->
+      cid = report.cid
       {cid, @docker_client.container_inspect(cid)}
     end)
   end
 
   defp fetch_all_scales(app_names) do
-    Map.new(app_names, fn app ->
-      {app, @ps_client.scale(app)}
+    Map.new(app_names, fn app_name ->
+      {app_name, @ps_client.scale(app_name)}
     end)
   end
 
@@ -125,13 +124,19 @@ defmodule DokkuRadar.Collector do
     }
   end
 
-  defp processes_running_metric(ps_entries) do
+  defp processes_running_metric(ps_reports) do
     samples =
-      ps_entries
-      |> Enum.filter(&(&1.state == "running"))
-      |> Enum.group_by(fn entry -> {entry.app, entry.process_type} end)
-      |> Enum.map(fn {{app, pt}, entries} ->
-        %{labels: %{"app" => app, "process_type" => pt}, value: length(entries)}
+      ps_reports
+      |> Map.values()
+      |> Enum.flat_map(fn report ->
+        Enum.map(report.status_entries, fn entry ->
+          %{app_name: report.app_name, process_name: entry.process_name, running: entry.running}
+        end)
+      end)
+      |> Enum.filter(& &1.running)
+      |> Enum.group_by(fn entry -> {entry.app_name, entry.process_name} end)
+      |> Enum.map(fn {{app_name, process_name}, entries} ->
+        %{labels: %{"app" => app_name, "process_name" => process_name}, value: length(entries)}
       end)
 
     %{
@@ -142,9 +147,9 @@ defmodule DokkuRadar.Collector do
     }
   end
 
-  defp container_state_metric(ps_entries) do
+  defp container_state_metric(ps_reports) do
     samples =
-      Enum.map(ps_entries, fn entry ->
+      Enum.map(ps_reports, fn entry ->
         %{
           labels: %{
             "app" => entry.app,
@@ -165,9 +170,9 @@ defmodule DokkuRadar.Collector do
     }
   end
 
-  defp container_restarts_metric(ps_entries, inspects_by_id) do
+  defp container_restarts_metric(ps_reports, inspects_by_id) do
     samples =
-      Enum.flat_map(ps_entries, fn entry ->
+      Enum.flat_map(ps_reports, fn entry ->
         case inspects_by_id[entry.cid] do
           {:ok, inspect_data} ->
             [
@@ -223,9 +228,9 @@ defmodule DokkuRadar.Collector do
     }
   end
 
-  defp cpu_usage_metric(ps_entries, stats_by_id) do
+  defp cpu_usage_metric(ps_reports, stats_by_id) do
     samples =
-      Enum.flat_map(ps_entries, fn entry ->
+      Enum.flat_map(ps_reports, fn entry ->
         case stats_by_id[entry.cid] do
           {:ok, stats} ->
             total_ns = get_in(stats, ["cpu_stats", "cpu_usage", "total_usage"]) || 0
@@ -250,9 +255,9 @@ defmodule DokkuRadar.Collector do
     }
   end
 
-  defp memory_usage_metric(ps_entries, stats_by_id) do
+  defp memory_usage_metric(ps_reports, stats_by_id) do
     samples =
-      Enum.flat_map(ps_entries, fn entry ->
+      Enum.flat_map(ps_reports, fn entry ->
         case stats_by_id[entry.cid] do
           {:ok, stats} ->
             usage = get_in(stats, ["memory_stats", "usage"]) || 0
