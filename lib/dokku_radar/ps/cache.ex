@@ -1,6 +1,8 @@
 defmodule DokkuRadar.Ps.Cache do
   use DokkuRadar.DokkuCli.Cache, interval: :timer.minutes(10)
 
+  alias DokkuRemote.App
+
   require Logger
 
   @commands_ps Application.compile_env(
@@ -8,6 +10,12 @@ defmodule DokkuRadar.Ps.Cache do
                  :"DokkuRemote.Commands.Ps",
                  DokkuRemote.Commands.Ps
                )
+
+  @commands_ps_app Application.compile_env(
+                     :dokku_radar,
+                     :"DokkuRemote.Commands.Ps.App",
+                     DokkuRemote.Commands.Ps.App
+                   )
 
   #################
   # Client API
@@ -55,13 +63,38 @@ defmodule DokkuRadar.Ps.Cache do
   def load() do
     dokku_host = DokkuRadar.DokkuCli.dokku_host!()
 
-    with {:ok, entries} <- @commands_ps.report(dokku_host),
-         {:ok, scales} <- @commands_ps.scale(dokku_host) do
-      {:update, %{entries: entries, scales: scales}}
+    with {:ok, reports} <- @commands_ps.report(dokku_host),
+         {:ok, scales} <- fetch_app_scales(dokku_host, reports) do
+      {:update, %{entries: reports, scales: scales}}
     else
       {:error, output, exit_code} ->
         Logger.warning("Failed to obtain PS information", exit_code: exit_code, output: output)
         {:error, {output, exit_code}}
+    end
+  end
+
+  defp fetch_app_scales(dokku_host, reports) do
+    reports
+    |> Enum.map(& &1.app)
+    |> Enum.uniq()
+    |> Enum.map(fn app -> %App{dokku_app: app, dokku_host: dokku_host} end)
+    |> Enum.reduce_while(%{}, fn app, acc ->
+      case @commands_ps_app.scale(app) do
+        {:ok, scale} ->
+          {:cont, Map.put(acc, app.dokku_app, scale)}
+
+        {:error, output, exit_code} ->
+          Logger.warning("Failed to obtain PS scale for app #{app.dokku_app}",
+            exit_code: exit_code,
+            output: output
+          )
+
+          {:halt, {:error, {output, exit_code}}}
+      end
+    end)
+    |> case do
+      {:error, _} = error -> error
+      scales -> {:ok, scales}
     end
   end
 end

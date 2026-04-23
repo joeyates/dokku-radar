@@ -18,6 +18,10 @@ defmodule DokkuRadar.Ps.CacheTest do
     },
     %{app: "my-api", process_type: "web", process_index: 1, state: "running", cid: "4a2b9c0d1e2"}
   ]
+  @scales %{
+    "blog-cms" => %{proctypes: %{"web" => 1}},
+    "my-api" => %{proctypes: %{"web" => 2}}
+  }
 
   @base_opts [name: nil, refresh_interval: nil]
 
@@ -33,19 +37,13 @@ defmodule DokkuRadar.Ps.CacheTest do
       {:ok, @entries}
     end)
 
-    stub(DokkuRemote.Commands.Ps.Mock, :scale, fn _host ->
+    stub(DokkuRemote.Commands.Ps.App.Mock, :scale, fn app ->
       {
         :ok,
-        %{
-          "blog-cms" => %DokkuRemote.Commands.Ps.Scale{
-            app_name: "blog-cms",
-            proctypes: %{"web" => 1}
-          },
-          "my-api" => %DokkuRemote.Commands.Ps.Scale{
-            app_name: "my-api",
-            proctypes: %{"web" => 2}
-          }
-        }
+        struct(
+          DokkuRemote.Commands.Ps.Scale,
+          Map.merge(%{app_name: app.dokku_app}, @scales[app.dokku_app])
+        )
       }
     end)
 
