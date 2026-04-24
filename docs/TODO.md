@@ -278,7 +278,7 @@ Status: [x]
 
 # Cache Docker calls following the pattern used by other modules
 
-Status: [ ]
+Status: [x]
 
 ## Description
 
