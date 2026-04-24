@@ -11,7 +11,6 @@ Mox.defmock(DokkuRemote.Commands.Storage.App.Mock, for: DokkuRemote.Commands.Sto
 Mox.defmock(DokkuRemote.Root.Command.Mock, for: DokkuRemote.Root.Command)
 Mox.defmock(DokkuRadar.Docker.Client.Mock, for: DokkuRadar.Docker.Client)
 Mox.defmock(DokkuRadar.Docker.Mock, for: DokkuRadar.Docker)
-Mox.defmock(DokkuRadar.DockerClient.Mock, for: DokkuRadar.DockerClient)
 Mox.defmock(DokkuRadar.Certs.Mock, for: DokkuRadar.Certs)
 Mox.defmock(DokkuRadar.Certs.Cache.Mock, for: DokkuRadar.Certs.Cache)
 Mox.defmock(DokkuRadar.Git.Cache.Mock, for: DokkuRadar.Git.Cache)

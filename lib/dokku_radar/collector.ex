@@ -1,11 +1,11 @@
 defmodule DokkuRadar.Collector do
   require Logger
 
-  @docker_client Application.compile_env(
-                   :dokku_radar,
-                   :"DokkuRadar.DockerClient",
-                   DokkuRadar.DockerClient
-                 )
+  @docker Application.compile_env(
+            :dokku_radar,
+            :"DokkuRadar.Docker",
+            DokkuRadar.Docker
+          )
   @certs_client Application.compile_env(
                   :dokku_radar,
                   :"DokkuRadar.Certs",
@@ -74,7 +74,7 @@ defmodule DokkuRadar.Collector do
     ps_reports
     |> Enum.flat_map(fn {_app_name, report} ->
       Enum.map(report.status_entries, fn entry ->
-        {entry.cid, @docker_client.container_stats(entry.cid)}
+        {entry.cid, @docker.container_stats(entry.cid)}
       end)
     end)
     |> Map.new()
@@ -84,7 +84,7 @@ defmodule DokkuRadar.Collector do
     ps_reports
     |> Enum.flat_map(fn {_app_name, report} ->
       Enum.map(report.status_entries, fn entry ->
-        {entry.cid, @docker_client.container_inspect(entry.cid)}
+        {entry.cid, @docker.container_inspect(entry.cid)}
       end)
     end)
     |> Map.new()
