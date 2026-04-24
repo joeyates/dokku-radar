@@ -18,6 +18,7 @@ defmodule DokkuRadar.Application do
 
       [
         {Task.Supervisor, name: DokkuRadar.TaskSupervisor},
+        DokkuRadar.Docker.Cache,
         DokkuRadar.Git.Cache,
         DokkuRadar.Certs.Cache,
         DokkuRadar.Ps.Cache,

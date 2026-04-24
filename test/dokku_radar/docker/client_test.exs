@@ -1,11 +1,11 @@
-defmodule DokkuRadar.DockerClientTest do
+defmodule DokkuRadar.Docker.ClientTest do
   use ExUnit.Case, async: true
 
-  alias DokkuRadar.DockerClient
+  alias DokkuRadar.Docker.Client
 
   describe "list_containers/0" do
     test "returns containers on success" do
-      Req.Test.stub(DockerClient, fn conn ->
+      Req.Test.stub(Client, fn conn ->
         containers = [
           %{
             "Id" => "abc123",
@@ -20,36 +20,36 @@ defmodule DokkuRadar.DockerClientTest do
         Req.Test.json(conn, containers)
       end)
 
-      assert {:ok, [container]} = DockerClient.list_containers(plug: {Req.Test, DockerClient})
+      assert {:ok, [container]} = Client.list_containers(plug: {Req.Test, Client})
 
       assert container["Id"] == "abc123"
       assert container["State"] == "running"
     end
 
     test "returns error on non-200 response" do
-      Req.Test.stub(DockerClient, fn conn ->
+      Req.Test.stub(Client, fn conn ->
         conn
         |> Plug.Conn.put_status(500)
         |> Req.Test.json(%{"message" => "server error"})
       end)
 
       assert {:error, {500, _body}} =
-               DockerClient.list_containers(plug: {Req.Test, DockerClient})
+               Client.list_containers(plug: {Req.Test, Client})
     end
 
     test "returns error on transport failure" do
-      Req.Test.stub(DockerClient, fn conn ->
+      Req.Test.stub(Client, fn conn ->
         Req.Test.transport_error(conn, :econnrefused)
       end)
 
       assert {:error, %Req.TransportError{reason: :econnrefused}} =
-               DockerClient.list_containers(plug: {Req.Test, DockerClient})
+               Client.list_containers(plug: {Req.Test, Client})
     end
   end
 
   describe "container_stats/1" do
     test "returns stats on success" do
-      Req.Test.stub(DockerClient, fn conn ->
+      Req.Test.stub(Client, fn conn ->
         stats = %{
           "read" => "2025-01-08T22:57:31.547920715Z",
           "memory_stats" => %{
@@ -72,21 +72,21 @@ defmodule DokkuRadar.DockerClientTest do
       end)
 
       assert {:ok, stats} =
-               DockerClient.container_stats("abc123", plug: {Req.Test, DockerClient})
+               Client.container_stats("abc123", plug: {Req.Test, Client})
 
       assert stats["memory_stats"]["usage"] == 6_537_216
       assert stats["pids_stats"]["current"] == 3
     end
 
     test "returns error when container not found" do
-      Req.Test.stub(DockerClient, fn conn ->
+      Req.Test.stub(Client, fn conn ->
         conn
         |> Plug.Conn.put_status(404)
         |> Req.Test.json(%{"message" => "No such container: xyz"})
       end)
 
       assert {:error, {404, _body}} =
-               DockerClient.container_stats("xyz", plug: {Req.Test, DockerClient})
+               Client.container_stats("xyz", plug: {Req.Test, Client})
     end
   end
 end

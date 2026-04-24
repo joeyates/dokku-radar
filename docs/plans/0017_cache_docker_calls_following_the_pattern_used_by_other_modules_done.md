@@ -12,13 +12,13 @@ Use TDD throughout: write tests before or alongside each implementation change, 
 
 ## Tasks
 
-- [ ] 1. Create `lib/dokku_radar/docker/client.ex` (`DokkuRadar.Docker.Client`) by moving the raw HTTP functions from `DockerClient` into it; rename `test/dokku_radar/docker_client_test.exs` → `test/dokku_radar/docker/client_test.exs` and update all `DockerClient` references to `Docker.Client`.
-- [ ] 2. Create `lib/dokku_radar/docker/cache.ex` (`DokkuRadar.Docker.Cache`) using `DokkuCli.Cache` with a 5-minute interval. `load/0` calls `Docker.Client.list_containers/0`, then fetches stats and inspect for every container, returning `{:update, %{stats: %{id => map()}, inspects: %{id => map()}}}`. Expose `container_stats/1` and `container_inspect/1` `handle_call` clauses; add tests for the cache.
-- [ ] 3. Replace `lib/dokku_radar/docker_client.ex` with `lib/dokku_radar/docker.ex` (`DokkuRadar.Docker`) as a thin front-end delegating to `Docker.Cache`; update `test/support/mocks.ex` (replace `DockerClient.Mock` with `Docker.Mock`) and `config/test.exs`.
-- [ ] 4. Update `lib/dokku_radar/collector.ex`: rename `@docker_client` → `@docker` backed by `DokkuRadar.Docker`; update `test/dokku_radar/collector_test.exs` to use `DokkuRadar.Docker.Mock`.
-- [ ] 5. Add `DokkuRadar.Docker.Cache` to the supervised children in `lib/dokku_radar/application.ex`.
-- [ ] 6. Ask the user for feedback on the state of the implementation and carry out any requested corrections.
-- [ ] 7. Mark the plan as "done".
+- [x] 1. Create `lib/dokku_radar/docker/client.ex` (`DokkuRadar.Docker.Client`) by moving the raw HTTP functions from `DockerClient` into it; rename `test/dokku_radar/docker_client_test.exs` → `test/dokku_radar/docker/client_test.exs` and update all `DockerClient` references to `Docker.Client`.
+- [x] 2. Create `lib/dokku_radar/docker/cache.ex` (`DokkuRadar.Docker.Cache`) using `DokkuCli.Cache` with a 5-minute interval. `load/0` calls `Docker.Client.list_containers/0`, then fetches stats and inspect for every container, returning `{:update, %{stats: %{id => map()}, inspects: %{id => map()}}}`. Expose `container_stats/1` and `container_inspect/1` `handle_call` clauses; add tests for the cache.
+- [x] 3. Replace `lib/dokku_radar/docker_client.ex` with `lib/dokku_radar/docker.ex` (`DokkuRadar.Docker`) as a thin front-end delegating to `Docker.Cache`; update `test/support/mocks.ex` (replace `DockerClient.Mock` with `Docker.Mock`) and `config/test.exs`.
+- [x] 4. Update `lib/dokku_radar/collector.ex`: rename `@docker_client` → `@docker` backed by `DokkuRadar.Docker`; update `test/dokku_radar/collector_test.exs` to use `DokkuRadar.Docker.Mock`.
+- [x] 5. Add `DokkuRadar.Docker.Cache` to the supervised children in `lib/dokku_radar/application.ex`.
+- [x] 6. Ask the user for feedback on the state of the implementation and carry out any requested corrections.
+- [x] 7. Mark the plan as "done".
 
 ## Principal Files
 
