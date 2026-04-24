@@ -17,8 +17,8 @@ Use TDD throughout: write tests before or alongside each implementation change, 
 - [x] 3. Replace `lib/dokku_radar/docker_client.ex` with `lib/dokku_radar/docker.ex` (`DokkuRadar.Docker`) as a thin front-end delegating to `Docker.Cache`; update `test/support/mocks.ex` (replace `DockerClient.Mock` with `Docker.Mock`) and `config/test.exs`.
 - [x] 4. Update `lib/dokku_radar/collector.ex`: rename `@docker_client` → `@docker` backed by `DokkuRadar.Docker`; update `test/dokku_radar/collector_test.exs` to use `DokkuRadar.Docker.Mock`.
 - [x] 5. Add `DokkuRadar.Docker.Cache` to the supervised children in `lib/dokku_radar/application.ex`.
-- [ ] 6. Ask the user for feedback on the state of the implementation and carry out any requested corrections.
-- [ ] 7. Mark the plan as "done".
+- [x] 6. Ask the user for feedback on the state of the implementation and carry out any requested corrections.
+- [x] 7. Mark the plan as "done".
 
 ## Principal Files
 
