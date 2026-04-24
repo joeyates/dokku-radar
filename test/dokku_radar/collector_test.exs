@@ -189,17 +189,21 @@ defmodule DokkuRadar.CollectorTest do
       assert sample.value == 5
     end
 
-    test "uses git:report timestamp for last deploy" do
-      containers = [
-        dokku_container("aaa11111111", "my-app", "web", 1, "running", 1_700_000_100),
-        dokku_container("bbb22222222", "my-app", "web", 2, "running", 1_700_000_200)
-      ]
+    test "dokku_app_last_deploy_timestamp uses git:report timestamp" do
+      setup_expectations(git_reports: %{"my-app" => {:ok, 1_775_125_215}})
 
+      assert {:ok, metrics} = Collector.collect()
+
+      ld = find_metric(metrics, "dokku_app_last_deploy_timestamp")
+      assert [%{labels: %{"app" => "my-app"}, value: 1_775_125_215}] = ld.samples
+    end
+
+    test "dokku_app_last_deploy_timestamp skips missing timestamps" do
       setup_expectations(
-        containers: containers,
-        scales: %{"my-app" => {:ok, ps_scale("my-app", %{"web" => 2})}},
-        cert_expiries: %{"my-app" => {:error, :no_cert}},
-        git_reports: %{"my-app" => {:ok, 1_775_125_215}}
+        git_reports: %{
+          "my-app" => {:ok, 1_775_125_215},
+          "other-app" => {:ok, nil}
+        }
       )
 
       assert {:ok, metrics} = Collector.collect()

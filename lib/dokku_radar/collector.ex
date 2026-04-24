@@ -105,8 +105,13 @@ defmodule DokkuRadar.Collector do
 
   defp fetch_git_timestamps() do
     case @git_client.last_deploy_timestamps() do
-      {:ok, timestamps} -> timestamps
-      {:error, _} -> %{}
+      {:ok, timestamps} ->
+        timestamps
+        |> Enum.filter(fn {_, value} -> is_integer(value) end)
+        |> Enum.into(%{})
+
+      {:error, _} ->
+        %{}
     end
   end
 
