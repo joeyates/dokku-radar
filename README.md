@@ -1,9 +1,9 @@
 # Dokku Radar
 
 A Prometheus exporter for [Dokku](https://dokku.com/) installations. It reads
-from the Docker socket and the Dokku data directory (both mounted read-only)
-to expose Dokku-semantic metrics — configured vs running processes, container
-state and restarts, SSL certificate expiry, CPU and memory usage, and last
+via various calls to the Dokku CLI via the DokkuRemote library, and also directly
+from the Docker socket to expose Dokku-semantic metrics, e.g. configured vs running processes,
+container state and restarts, SSL certificate expiry, CPU and memory usage, and last
 deploy timestamps.
 
 The container image is published to GHCR and deployed to Dokku via
@@ -28,11 +28,6 @@ dokku git:from-image $DOKKU_APP ghcr.io/joeyates/dokku-radar:latest
 Dokku Radar confirms containers are running but **cannot verify that apps are
 responding correctly to HTTP requests**. A container may be in `running` state
 but returning errors or timing out.
-
-For HTTP availability monitoring, consider deploying
-[blackbox_exporter](https://github.com/prometheus/blackbox_exporter) as an
-additional monitoring app to probe your app domains. This is outside the
-scope of this project.
 
 ## Prerequisites
 
