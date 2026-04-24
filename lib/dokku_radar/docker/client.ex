@@ -3,6 +3,10 @@ defmodule DokkuRadar.Docker.Client do
 
   @socket_path "/var/run/docker.sock"
 
+  @callback list_containers() :: {:ok, [map()]} | {:error, term()}
+  @callback container_stats(String.t()) :: {:ok, map()} | {:error, term()}
+  @callback container_inspect(String.t()) :: {:ok, map()} | {:error, term()}
+
   def list_containers(opts \\ []) do
     Logger.debug("Fetching container list from Docker")
 
