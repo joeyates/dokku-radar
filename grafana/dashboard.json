@@ -99,7 +99,7 @@
     },
     {
       "title": "SSL Certificate Days Remaining",
-      "type": "timeseries",
+      "type": "table",
       "gridPos": {
         "h": 8,
         "w": 12,
@@ -111,46 +111,69 @@
         "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "drawStyle": "line",
-            "fillOpacity": 10,
-            "lineWidth": 2,
-            "pointSize": 5,
-            "showPoints": "never"
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "app"
+            },
+            "properties": [
               {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 0
-              },
-              {
-                "color": "orange",
-                "value": 14
-              },
-              {
-                "color": "green",
-                "value": 30
+                "id": "custom.width",
+                "value": 200
               }
             ]
           },
-          "unit": "short"
-        },
-        "overrides": []
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Days Remaining"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "days"
+              }
+            ]
+          }
+        ]
       },
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Days Remaining"
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "app",
+                "Value"
+              ]
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "Value": "Days Remaining"
+            }
+          }
+        }
+      ],
       "targets": [
         {
-          "expr": "(last_over_time(dokku_ssl_cert_expiry_timestamp{app=~\"$app\"}[25h]) - time()) / 86400",
-          "legendFormat": "{{app}}",
+          "expr": "(dokku_ssl_cert_expiry_timestamp{app=~\"$app\"} - time()) / 86400",
+          "format": "table",
+          "instant": true,
           "refId": "A"
         }
       ]
