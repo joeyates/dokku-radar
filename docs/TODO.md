@@ -275,3 +275,11 @@ Status: [x]
 - Audit every access to `ps_reports` entries against `DokkuRemote.Commands.Ps.Report.t()` and `DokkuRemote.Commands.Ps.Report.StatusEntry.t()`.
 - Audit `scale` values against `DokkuRemote.Commands.Ps.Scale.t()` (which has a `proctypes` map, not bare `{process_type, count}` pairs).
 - Verify metric label keys (`"app"`, `"process_type"`, `"process_name"`, etc.) match the Prometheus queries in `grafana/dashboard.json`.
+
+# Cache Docker calls following the pattern used by other modules
+
+Status: [ ]
+
+## Description
+
+Cache results from `DokkuRadar.DockerClient` in a GenServer (following the cache pattern used by `Certs.Cache`, `Git.Cache`, `Ps.Cache`, and `Services.Cache`) so that Docker API calls do not block Prometheus scrapes.
