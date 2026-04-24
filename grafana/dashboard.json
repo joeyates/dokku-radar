@@ -19,8 +19,8 @@
   "links": [],
   "panels": [
     {
-      "title": "Configured vs Running Processes",
-      "type": "timeseries",
+      "title": "App States",
+      "type": "table",
       "gridPos": {
         "h": 8,
         "w": 12,
@@ -32,31 +32,60 @@
         "uid": "${DS_PROMETHEUS}"
       },
       "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "drawStyle": "line",
-            "fillOpacity": 10,
-            "lineWidth": 2,
-            "pointSize": 5,
-            "showPoints": "never"
-          },
-          "unit": "short"
-        },
-        "overrides": []
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "count"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ]
+          }
+        ]
       },
+      "options": {
+        "showHeader": true
+      },
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "app",
+                "process_type",
+                "state",
+                "Value"
+              ]
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "Value": "count"
+            },
+            "indexByName": {
+              "app": 0,
+              "process_type": 1,
+              "state": 2,
+              "count": 3
+            }
+          }
+        }
+      ],
       "targets": [
         {
-          "expr": "dokku_app_processes_configured{app=~\"$app\"}",
-          "legendFormat": "{{app}} {{process_type}} configured",
+          "expr": "label_replace(dokku_app_processes_configured{app=~\"$app\"}, \"state\", \"configured\", \"__name__\", \".*\") or label_replace(dokku_app_processes_running{app=~\"$app\"}, \"state\", \"running\", \"__name__\", \".*\")",
+          "format": "table",
+          "instant": true,
           "refId": "A"
-        },
-        {
-          "expr": "dokku_app_processes_running{app=~\"$app\"}",
-          "legendFormat": "{{app}} {{process_type}} running",
-          "refId": "B"
         }
       ]
     },
