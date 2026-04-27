@@ -6,6 +6,8 @@ defmodule DokkuRadar.CLI.Diagnose do
   @container_ssh_dir "/data/.ssh"
   @container_private_key_path "#{@container_ssh_dir}/id_ed25519"
   @health_url "http://127.0.0.1:9110/health"
+  @metrics_url "http://127.0.0.1:9110/metrics"
+  @dashboard_path "grafana/dashboard.json"
   @prometheus_targets_url "http://prometheus.web.1:9090/api/v1/targets"
   @monitoring_network "monitoring"
 
@@ -89,6 +91,10 @@ defmodule DokkuRadar.CLI.Diagnose do
           %{
             message: "Prometheus targets are healthy",
             function: fn -> check_prometheus_targets(app) end
+          },
+          %{
+            message: "metrics cover all Grafana panels",
+            function: fn -> check_metrics_coverage(app) end
           }
         ]
 
@@ -229,6 +235,51 @@ defmodule DokkuRadar.CLI.Diagnose do
       -i #{@container_private_key_path}
       dokku@#{host_ip_for_dokku_radar}
     )
+  end
+
+  defp check_metrics_coverage(%App{} = app) do
+    case @commands_enter_app.run(app, "web", ["wget", "-qO-", @metrics_url]) do
+      {:ok, metrics_output} ->
+        required = required_metric_names()
+        with_data = metric_names_with_data(metrics_output)
+        missing = Enum.reject(required, &(&1 in with_data))
+
+        if missing == [] do
+          {:ok, nil}
+        else
+          {:error, "Missing metrics: #{missing |> Enum.sort() |> Enum.join(", ")}"}
+        end
+
+      {:error, _output, _exit_code} ->
+        {:error, "Metrics coverage: could not fetch metrics output"}
+    end
+  end
+
+  defp required_metric_names() do
+    @dashboard_path
+    |> File.read!()
+    |> Jason.decode!()
+    |> get_in(["panels"])
+    |> Kernel.||([])
+    |> Enum.flat_map(&(get_in(&1, ["targets"]) || []))
+    |> Enum.flat_map(fn target ->
+      case target["expr"] do
+        nil -> []
+        expr -> ~r/\bdokku_\w+/ |> Regex.scan(expr) |> List.flatten()
+      end
+    end)
+    |> Enum.uniq()
+  end
+
+  defp metric_names_with_data(output) do
+    output
+    |> String.split("\n")
+    |> Enum.reject(&String.starts_with?(&1, "#"))
+    |> Enum.reject(&(String.trim(&1) == ""))
+    |> Enum.map(fn line ->
+      line |> String.split(["{", " "], parts: 2) |> List.first()
+    end)
+    |> Enum.uniq()
   end
 
   defp check_prometheus_targets(%App{} = app) do

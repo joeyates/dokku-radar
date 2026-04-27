@@ -15,7 +15,7 @@ Add a `check_metrics_coverage/1` check to `DokkuRadar.CLI.Diagnose` that:
 
 ## Tasks
 
-- [ ] 1. Add `check_metrics_coverage/1` to `DokkuRadar.CLI.Diagnose`: fetch `/metrics` via `@commands_enter_app.run(app, "web", ["wget", "-qO-", "http://127.0.0.1:9110/metrics"])`, extract required names from `grafana/dashboard.json`, compare against metrics that have data, and return `{:ok, nil}` or `{:error, "Missing metrics: <names>"}`. Register it in the `checks` list with the message `"metrics cover all Grafana panels"`. See `grafana/example-metrics.txt` for examples of metrics output with and without data samples.
+- [x] 1. Add `check_metrics_coverage/1` to `DokkuRadar.CLI.Diagnose`: fetch `/metrics` via `@commands_enter_app.run(app, "web", ["wget", "-qO-", "http://127.0.0.1:9110/metrics"])`, extract required names from `grafana/dashboard.json`, compare against metrics that have data, and return `{:ok, nil}` or `{:error, "Missing metrics: <names>"}`. Register it in the `checks` list with the message `"metrics cover all Grafana panels"`. See `grafana/example-metrics.txt` for examples of metrics output with and without data samples.
 - [ ] 2. Add tests in `test/dokku_radar/cli/diagnose_test.exs`: extend `stub_commands_enter_app_run` to handle the `/metrics` URL; add a passing test (all metrics present with data) and a failing test (one or more metrics absent or empty).
 - [ ] 3. Ask the user for feedback on the state of the implementation and carry out any requested corrections.
 - [ ] 4. Mark the plan as "done".
