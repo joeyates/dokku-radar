@@ -283,3 +283,20 @@ Status: [x]
 ## Description
 
 Cache results from `DokkuRadar.DockerClient` in a GenServer (following the cache pattern used by `Certs.Cache`, `Git.Cache`, `Ps.Cache`, and `Services.Cache`) so that Docker API calls do not block Prometheus scrapes.
+
+# Validate metrics output against Grafana dashboard panels
+
+Status: [ ]
+
+## Description
+
+Add a phase to `bin/dokku-radar.exs diagnose` that fetches the live `/metrics` output from inside the `dokku-radar` container (via an `enter` call) and checks that every metric name referenced by a Grafana panel in `grafana/dashboard.json` has data in the output. This gives operators confidence that the exporter is producing data that will populate the dashboard.
+
+## Technical Specifics
+
+- Add a `check_metrics_coverage/1` function to `DokkuRadar.CLI.Diagnose`.
+- Fetch metrics via `@commands_enter_app.run(app, "web", ["wget", "-qO-", "http://127.0.0.1:9110/metrics"])`.
+- Extract required metric names from `grafana/dashboard.json` at runtime: read and decode the file, collect all `"expr"` string values from panel targets, and extract bare metric names using a regex (e.g. `~r/\bdokku_\w+/`).
+- Parse the metrics output to determine which metric names have data; see `grafana/example-metrics.txt` for examples of metrics with and without data samples.
+- Report `✅ Metrics cover all Grafana panels` if all names are found; otherwise `❌ Missing metrics: <names>`.
+- Add a test in `test/dokku_radar/cli/diagnose_test.exs` covering pass and fail cases, using `stub_commands_enter_app_run` with a fixture metrics string.
