@@ -14,6 +14,46 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
   @ssh_host_dir "/var/lib/dokku/data/storage/dokku-radar/.ssh"
   @private_key_path "#{@ssh_host_dir}/id_ed25519"
   @container_ssh_dir "/data/.ssh"
+  @metrics_url "http://127.0.0.1:9110/metrics"
+
+  @all_metrics_response """
+  # HELP dokku_app_processes_configured Number of configured processes per app and process type
+  # TYPE dokku_app_processes_configured gauge
+  dokku_app_processes_configured{app="my-app",process_type="web"} 1
+
+  # HELP dokku_app_processes_running Number of running processes per app and process type
+  # TYPE dokku_app_processes_running gauge
+  dokku_app_processes_running{app="my-app",process_type="web"} 1
+
+  # HELP dokku_container_restarts_total Total number of container restarts
+  # TYPE dokku_container_restarts_total counter
+  dokku_container_restarts_total{app="my-app",container_id="abc",process_index="1",process_type="web"} 0
+
+  # HELP dokku_app_last_deploy_timestamp Unix timestamp of the most recent deploy per app
+  # TYPE dokku_app_last_deploy_timestamp gauge
+  dokku_app_last_deploy_timestamp{app="my-app"} 1700000000
+
+  # HELP dokku_ssl_cert_expiry_timestamp Unix timestamp of SSL certificate expiry per app
+  # TYPE dokku_ssl_cert_expiry_timestamp gauge
+  dokku_ssl_cert_expiry_timestamp{app="my-app"} 1800000000
+
+  # HELP dokku_app_cpu_usage_seconds_total Total CPU usage in seconds
+  # TYPE dokku_app_cpu_usage_seconds_total counter
+  dokku_app_cpu_usage_seconds_total{app="my-app",container_id="abc"} 1.5
+
+  # HELP dokku_app_memory_usage_bytes Current memory usage in bytes
+  # TYPE dokku_app_memory_usage_bytes gauge
+  dokku_app_memory_usage_bytes{app="my-app",container_id="abc"} 104857600
+
+  # HELP dokku_service_linked 1 if the app has the named service linked
+  # TYPE dokku_service_linked gauge
+  dokku_service_linked{app="my-app",service_name="my-db",service_type="postgres"} 1
+
+  # HELP dokku_service_status 1 if the service is running, 0 otherwise
+  # TYPE dokku_service_status gauge
+  dokku_service_status{service_name="my-db",service_type="postgres"} 1
+  """
+
   @prometheus_targets_response ~s(
     {
       "status": "success",
@@ -65,10 +105,14 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
     enter_prometheus_response =
       Map.get(context, :enter_prometheus_response, {:ok, @prometheus_targets_response})
 
+    enter_metrics_response =
+      Map.get(context, :enter_metrics_response, {:ok, @all_metrics_response})
+
     stub_commands_enter_app_run(%{
       enter_health_response: enter_health_response,
       enter_apps_help_response: enter_apps_help_response,
-      enter_prometheus_response: enter_prometheus_response
+      enter_prometheus_response: enter_prometheus_response,
+      enter_metrics_response: enter_metrics_response
     })
 
     :ok
@@ -192,6 +236,28 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
 
       assert output =~ "❌ dokku-radar could not connect to host"
     end
+
+    test "passes when all Grafana panel metrics have data" do
+      {:ok, output} = with_io(fn -> Diagnose.run(@dokku_radar_app) end)
+
+      assert output =~ "Checking metrics cover all Grafana panels... ✅"
+    end
+
+    @tag enter_metrics_response:
+           {:ok,
+            "# HELP dokku_app_processes_configured desc\n# TYPE dokku_app_processes_configured gauge\n"}
+    test "returns error when a Grafana panel metric has no data" do
+      {{:error, _}, output} = with_io(fn -> Diagnose.run(@dokku_radar_app) end)
+
+      assert output =~ "❌ Missing metrics:"
+    end
+
+    @tag enter_metrics_response: {:error, "Command failed", 1}
+    test "returns error when metrics fetch fails" do
+      {{:error, _}, output} = with_io(fn -> Diagnose.run(@dokku_radar_app) end)
+
+      assert output =~ "❌ Metrics coverage: could not fetch metrics output"
+    end
   end
 
   defp stub_commands_ps_app_reports(apps_running) do
@@ -281,6 +347,9 @@ defmodule DokkuRadar.CLI.DiagnoseTest do
 
         _app, "web", ["wget", "-qO-", "http://prometheus.web.1:9090/api/v1/targets"] ->
           responses.enter_prometheus_response
+
+        _app, "web", ["wget", "-qO-", @metrics_url] ->
+          responses.enter_metrics_response
       end
     )
   end
