@@ -1,0 +1,134 @@
+# HELP dokku_app_processes_configured Number of configured processes per app and process type
+# TYPE dokku_app_processes_configured gauge
+dokku_app_processes_configured{app="blog-cms",process_type="release"} 0
+dokku_app_processes_configured{app="blog-cms",process_type="web"} 1
+dokku_app_processes_configured{app="blog-img",process_type="web"} 1
+dokku_app_processes_configured{app="c7p",process_type="release"} 0
+dokku_app_processes_configured{app="c7p",process_type="web"} 1
+dokku_app_processes_configured{app="c7p-cms",process_type="release"} 0
+dokku_app_processes_configured{app="c7p-cms",process_type="web"} 1
+dokku_app_processes_configured{app="c7p-img",process_type="web"} 1
+dokku_app_processes_configured{app="caveatica",process_type="web"} 1
+dokku_app_processes_configured{app="cpne",process_type="web"} 1
+dokku_app_processes_configured{app="docker-mailserver",process_type="web"} 1
+dokku_app_processes_configured{app="dokku-radar",process_type="web"} 1
+dokku_app_processes_configured{app="grafana",process_type="web"} 1
+dokku_app_processes_configured{app="home-helper",process_type="web"} 1
+dokku_app_processes_configured{app="immich",process_type="web"} 1
+dokku_app_processes_configured{app="nextcloud",process_type="web"} 1
+dokku_app_processes_configured{app="prometheus",process_type="web"} 1
+dokku_app_processes_configured{app="repetti",process_type="web"} 1
+dokku_app_processes_configured{app="trees",process_type="web"} 1
+dokku_app_processes_configured{app="trees-img",process_type="web"} 1
+dokku_app_processes_configured{app="vaultwarden",process_type="web"} 1
+
+# HELP dokku_app_processes_running Number of running processes per app and process type
+# TYPE dokku_app_processes_running gauge
+dokku_app_processes_running{app="blog-cms",process_type="web"} 1
+dokku_app_processes_running{app="blog-img",process_type="web"} 1
+dokku_app_processes_running{app="c7p",process_type="web"} 1
+dokku_app_processes_running{app="c7p-cms",process_type="web"} 1
+dokku_app_processes_running{app="c7p-img",process_type="web"} 1
+dokku_app_processes_running{app="caveatica",process_type="web"} 1
+dokku_app_processes_running{app="cpne",process_type="web"} 1
+dokku_app_processes_running{app="docker-mailserver",process_type="web"} 1
+dokku_app_processes_running{app="dokku-radar",process_type="web"} 1
+dokku_app_processes_running{app="grafana",process_type="web"} 1
+dokku_app_processes_running{app="home-helper",process_type="web"} 1
+dokku_app_processes_running{app="immich",process_type="web"} 1
+dokku_app_processes_running{app="nextcloud",process_type="web"} 1
+dokku_app_processes_running{app="prometheus",process_type="web"} 1
+dokku_app_processes_running{app="repetti",process_type="web"} 1
+dokku_app_processes_running{app="trees-img",process_type="web"} 1
+dokku_app_processes_running{app="vaultwarden",process_type="web"} 1
+
+# HELP dokku_container_state Container state (1 = current state as labeled)
+# TYPE dokku_container_state gauge
+dokku_container_state{app="blog-cms",container_id="37d851b84ba",process_index="1",process_type="web",state="running"} 1
+dokku_container_state{app="blog-img",container_id="b6f175fd8b6",process_index="1",process_type="web",state="running"} 1
+dokku_container_state{app="c7p",container_id="63a6ec81dff",process_index="1",process_type="web",state="running"} 1
+dokku_container_state{app="c7p-cms",container_id="e8958860158",process_index="1",process_type="web",state="running"} 1
+dokku_container_state{app="c7p-img",container_id="1e063b30af0",process_index="1",process_type="web",state="running"} 1
+dokku_container_state{app="caveatica",container_id="6c9ce7e0a1e",process_index="1",process_type="web",state="running"} 1
+dokku_container_state{app="cpne",container_id="fa1aa0a6c0f",process_index="1",process_type="web",state="running"} 1
+dokku_container_state{app="docker-mailserver",container_id="9fd39b4a4c3",process_index="1",process_type="web",state="running"} 1
+dokku_container_state{app="dokku-radar",container_id="c969976fcf6",process_index="1",process_type="web",state="running"} 1
+dokku_container_state{app="grafana",container_id="05daaf7ec35",process_index="1",process_type="web",state="running"} 1
+dokku_container_state{app="home-helper",container_id="c09e39733e0",process_index="1",process_type="web",state="running"} 1
+dokku_container_state{app="immich",container_id="a5c30d605b4",process_index="1",process_type="web",state="running"} 1
+dokku_container_state{app="nextcloud",container_id="66bfd5e9fe1",process_index="1",process_type="web",state="running"} 1
+dokku_container_state{app="prometheus",container_id="55ddedc85a9",process_index="1",process_type="web",state="running"} 1
+dokku_container_state{app="repetti",container_id="694ee1068ad",process_index="1",process_type="web",state="running"} 1
+dokku_container_state{app="trees-img",container_id="2eb40d73d4f",process_index="1",process_type="web",state="running"} 1
+dokku_container_state{app="vaultwarden",container_id="cf31d79fbff",process_index="1",process_type="web",state="running"} 1
+
+# HELP dokku_container_restarts_total Total number of container restarts
+# TYPE dokku_container_restarts_total counter
+
+# HELP dokku_app_last_deploy_timestamp Unix timestamp of the most recent deploy per app
+# TYPE dokku_app_last_deploy_timestamp gauge
+dokku_app_last_deploy_timestamp{app="blog-cms"} 1775125215
+dokku_app_last_deploy_timestamp{app="blog-img"} 1775058217
+dokku_app_last_deploy_timestamp{app="c7p"} 1775117449
+dokku_app_last_deploy_timestamp{app="c7p-cms"} 1775065864
+dokku_app_last_deploy_timestamp{app="c7p-img"} 1775055855
+dokku_app_last_deploy_timestamp{app="caveatica"} 1775767878
+dokku_app_last_deploy_timestamp{app="cpne"} 1775137378
+dokku_app_last_deploy_timestamp{app="docker-mailserver"} 1777058313
+dokku_app_last_deploy_timestamp{app="dokku-radar"} 1777023568
+dokku_app_last_deploy_timestamp{app="grafana"} 1775749238
+dokku_app_last_deploy_timestamp{app="home-helper"} 1775126982
+dokku_app_last_deploy_timestamp{app="immich"} 1775046017
+dokku_app_last_deploy_timestamp{app="nextcloud"} 1775053402
+dokku_app_last_deploy_timestamp{app="repetti"} 1775121792
+dokku_app_last_deploy_timestamp{app="trees-img"} 1775061393
+dokku_app_last_deploy_timestamp{app="vaultwarden"} 1775044724
+
+# HELP dokku_ssl_cert_expiry_timestamp Unix timestamp of SSL certificate expiry per app
+# TYPE dokku_ssl_cert_expiry_timestamp gauge
+dokku_ssl_cert_expiry_timestamp{app="blog-cms"} 1782895148
+dokku_ssl_cert_expiry_timestamp{app="blog-img"} 1782830545
+dokku_ssl_cert_expiry_timestamp{app="c7p"} 1782839012
+dokku_ssl_cert_expiry_timestamp{app="c7p-cms"} 1782835816
+dokku_ssl_cert_expiry_timestamp{app="c7p-img"} 1782828148
+dokku_ssl_cert_expiry_timestamp{app="caveatica"} 1782899586
+dokku_ssl_cert_expiry_timestamp{app="cpne"} 1782906648
+dokku_ssl_cert_expiry_timestamp{app="docker-mailserver"} 1784816683
+dokku_ssl_cert_expiry_timestamp{app="grafana"} 1783947177
+dokku_ssl_cert_expiry_timestamp{app="home-helper"} 1782898236
+dokku_ssl_cert_expiry_timestamp{app="immich"} 1782817979
+dokku_ssl_cert_expiry_timestamp{app="nextcloud"} 1782825374
+dokku_ssl_cert_expiry_timestamp{app="repetti"} 1782890497
+dokku_ssl_cert_expiry_timestamp{app="trees"} 1782910655
+dokku_ssl_cert_expiry_timestamp{app="trees-img"} 1782833265
+dokku_ssl_cert_expiry_timestamp{app="vaultwarden"} 1782813454
+
+# HELP dokku_app_cpu_usage_seconds_total Total CPU usage in seconds per container
+# TYPE dokku_app_cpu_usage_seconds_total counter
+
+# HELP dokku_app_memory_usage_bytes Current memory usage in bytes per container
+# TYPE dokku_app_memory_usage_bytes gauge
+
+# HELP dokku_service_linked 1 if the app has the named service linked
+# TYPE dokku_service_linked gauge
+dokku_service_linked{app="c7p",service_name="c7p",service_type="postgres"} 1
+dokku_service_linked{app="c7p-cms",service_name="c7p-cms",service_type="postgres"} 1
+dokku_service_linked{app="cpne",service_name="cpne",service_type="postgres"} 1
+dokku_service_linked{app="immich",service_name="immich",service_type="postgres"} 1
+dokku_service_linked{app="nextcloud",service_name="nextcloud",service_type="postgres"} 1
+dokku_service_linked{app="repetti",service_name="repetti",service_type="postgres"} 1
+dokku_service_linked{app="trees",service_name="trees",service_type="postgres"} 1
+dokku_service_linked{app="immich",service_name="immich",service_type="redis"} 1
+dokku_service_linked{app="nextcloud",service_name="nextcloud",service_type="redis"} 1
+
+# HELP dokku_service_status 1 if the service is running, 0 if stopped
+# TYPE dokku_service_status gauge
+dokku_service_status{service_name="c7p",service_type="postgres"} 1
+dokku_service_status{service_name="c7p-cms",service_type="postgres"} 1
+dokku_service_status{service_name="cpne",service_type="postgres"} 1
+dokku_service_status{service_name="immich",service_type="postgres"} 1
+dokku_service_status{service_name="nextcloud",service_type="postgres"} 1
+dokku_service_status{service_name="repetti",service_type="postgres"} 1
+dokku_service_status{service_name="trees",service_type="postgres"} 1
+dokku_service_status{service_name="immich",service_type="redis"} 1
+dokku_service_status{service_name="nextcloud",service_type="redis"} 1
