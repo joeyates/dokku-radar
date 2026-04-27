@@ -73,7 +73,7 @@ defmodule DokkuRadar.Docker.Client do
         {:ok, body}
 
       {:ok, %Req.Response{status: status, body: body}} ->
-        Logger.warning("Docker container_inspect returned non-200",
+        Logger.warning("Docker container_inspect for container #{container_id} returned non-200",
           container_id: container_id,
           status: status,
           body: inspect(body)
