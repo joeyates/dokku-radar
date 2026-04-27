@@ -286,7 +286,7 @@ Cache results from `DokkuRadar.DockerClient` in a GenServer (following the cache
 
 # Validate metrics output against Grafana dashboard panels
 
-Status: [ ]
+Status: [x]
 
 ## Description
 
