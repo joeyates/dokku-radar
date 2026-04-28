@@ -303,7 +303,7 @@ Add a phase to `bin/dokku-radar.exs diagnose` that fetches the live `/metrics` o
 
 # Accept Continer ID Abbreviations
 
-Status: [ ]
+Status: [x]
 
 ## Description
 
