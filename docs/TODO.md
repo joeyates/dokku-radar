@@ -300,3 +300,11 @@ Add a phase to `bin/dokku-radar.exs diagnose` that fetches the live `/metrics` o
 - Parse the metrics output to determine which metric names have data; see `grafana/example-metrics.txt` for examples of metrics with and without data samples.
 - Report `✅ Metrics cover all Grafana panels` if all names are found; otherwise `❌ Missing metrics: <names>`.
 - Add a test in `test/dokku_radar/cli/diagnose_test.exs` covering pass and fail cases, using `stub_commands_enter_app_run` with a fixture metrics string.
+
+# Accept Continer ID Abbreviations
+
+Status: [ ]
+
+## Description
+
+Dokku abbreviates Docker container ids (`cid`s) from 64 to 12 characters. Change the behaviour of `DokkuRadar.Docker.Cache` to use `Enum.find/2` in `handle_call/3`.
