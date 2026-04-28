@@ -31,7 +31,13 @@ defmodule DokkuRadar.Docker.Cache do
   end
 
   def handle_call({:container_stats, id}, _from, %{data: %{stats: stats}} = state) do
-    {:reply, Map.get(stats, id, {:error, :not_found}), state}
+    result =
+      case Enum.find(stats, fn {key, _val} -> String.starts_with?(key, id) end) do
+        {_key, val} -> val
+        nil -> {:error, :not_found}
+      end
+
+    {:reply, result, state}
   end
 
   def handle_call({:container_inspect, _id}, _from, %{data: nil} = state) do
@@ -39,7 +45,13 @@ defmodule DokkuRadar.Docker.Cache do
   end
 
   def handle_call({:container_inspect, id}, _from, %{data: %{inspects: inspects}} = state) do
-    {:reply, Map.get(inspects, id, {:error, :not_found}), state}
+    result =
+      case Enum.find(inspects, fn {key, _val} -> String.starts_with?(key, id) end) do
+        {_key, val} -> val
+        nil -> {:error, :not_found}
+      end
+
+    {:reply, result, state}
   end
 
   def handle_call(msg, from, state), do: super(msg, from, state)

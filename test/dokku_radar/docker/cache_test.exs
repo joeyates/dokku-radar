@@ -66,6 +66,37 @@ defmodule DokkuRadar.Docker.CacheTest do
     end
   end
 
+  @full_container_id "abc111222333444555666777888999aaabbbcccdddeeefff0001"
+  @short_container_id "abc111222333"
+
+  describe "abbreviated container id lookup" do
+    setup do
+      expect(DokkuRadar.Docker.Client.Mock, :list_containers, fn ->
+        {:ok, [%{"Id" => @full_container_id}]}
+      end)
+
+      expect(DokkuRadar.Docker.Client.Mock, :container_stats, fn @full_container_id ->
+        {:ok, @stats}
+      end)
+
+      expect(DokkuRadar.Docker.Client.Mock, :container_inspect, fn @full_container_id ->
+        {:ok, @inspect_data}
+      end)
+
+      pid = start_supervised!({Cache, @base_opts}, id: :abbrev_cache)
+      wait_for_ready(pid)
+      %{pid: pid}
+    end
+
+    test "container_stats resolves an abbreviated id", %{pid: pid} do
+      assert Cache.container_stats(@short_container_id, pid) == {:ok, @stats}
+    end
+
+    test "container_inspect resolves an abbreviated id", %{pid: pid} do
+      assert Cache.container_inspect(@short_container_id, pid) == {:ok, @inspect_data}
+    end
+  end
+
   describe "when Docker.Client fails" do
     setup do
       expect(DokkuRadar.Docker.Client.Mock, :list_containers, fn ->
