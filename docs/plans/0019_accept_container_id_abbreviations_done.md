@@ -12,8 +12,8 @@ Dokku abbreviates Docker container IDs (`cid`s) from 64 to 12 characters. The `h
 
 - [x] 1. In `lib/dokku_radar/docker/cache.ex`, replace both `Map.get(stats/inspects, id, {:error, :not_found})` lookups with an `Enum.find` that matches any stored key whose full ID starts with the supplied `id`; return `{:error, :not_found}` when no match is found.
 - [x] 2. Update `test/dokku_radar/docker/cache_test.exs`: expand `@container_id` to a full 64-character ID (as stored by Docker), add a `@container_id_short` (first 12 characters), and add tests verifying that both the full and abbreviated IDs resolve correctly for `container_stats` and `container_inspect`.
-- [ ] 3. Ask the user for feedback on the state of the implementation and carry out any requested corrections.
-- [ ] 4. Mark the plan as done.
+- [x] 3. Ask the user for feedback on the state of the implementation and carry out any requested corrections.
+- [x] 4. Mark the plan as done.
 
 ## Principal Files
 
