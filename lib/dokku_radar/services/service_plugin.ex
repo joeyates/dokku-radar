@@ -1,6 +1,4 @@
 defmodule DokkuRadar.Services.ServicePlugin do
-  @callback services(String.t()) :: {:ok, [String.t()]} | {:error, non_neg_integer(), term()}
-
   @postgres Application.compile_env(
               :dokku_radar,
               :"DokkuRemote.Commands.Postgres",
@@ -14,6 +12,7 @@ defmodule DokkuRadar.Services.ServicePlugin do
 
   require Logger
 
+  @callback services(String.t()) :: {:ok, [String.t()]} | {:error, non_neg_integer(), term()}
   def services("postgres") do
     dokku_host = DokkuRadar.DokkuCli.dokku_host!()
 

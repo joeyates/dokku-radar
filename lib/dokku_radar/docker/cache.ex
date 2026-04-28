@@ -13,12 +13,11 @@ defmodule DokkuRadar.Docker.Cache do
   # Client API
 
   @callback container_stats(String.t()) :: {:ok, map()} | {:error, term()}
-  @callback container_inspect(String.t()) :: {:ok, map()} | {:error, term()}
-
   def container_stats(id, server \\ __MODULE__) do
     GenServer.call(server, {:container_stats, id})
   end
 
+  @callback container_inspect(String.t()) :: {:ok, map()} | {:error, term()}
   def container_inspect(id, server \\ __MODULE__) do
     GenServer.call(server, {:container_inspect, id})
   end

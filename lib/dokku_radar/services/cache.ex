@@ -25,7 +25,6 @@ defmodule DokkuRadar.Services.Cache do
   # Client API
 
   @callback service_links() :: {:ok, [map()]} | {:error, term()}
-
   def service_links(server \\ __MODULE__) do
     GenServer.call(server, :service_links)
   end

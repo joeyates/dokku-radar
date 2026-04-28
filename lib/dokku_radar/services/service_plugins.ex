@@ -1,6 +1,4 @@
 defmodule DokkuRadar.Services.ServicePlugins do
-  @callback list() :: {:ok, [String.t()]} | {:error, non_neg_integer(), term()}
-
   @commands_plugin Application.compile_env(
                      :dokku_radar,
                      :"DokkuRemote.Commands.Plugin",
@@ -21,6 +19,7 @@ defmodule DokkuRadar.Services.ServicePlugins do
     redis
   )
 
+  @callback list() :: {:ok, [String.t()]} | {:error, non_neg_integer(), term()}
   def list() do
     dokku_host = DokkuRadar.DokkuCli.dokku_host!()
 

@@ -1,8 +1,6 @@
 defmodule DokkuRadar.Services.Service do
   defstruct [:type, :name, links: [], status: "running"]
 
-  @callback links(String.t(), String.t()) :: {:ok, [String.t()]} | {:error, term()}
-
   @postgres Application.compile_env(
               :dokku_radar,
               :"DokkuRemote.Commands.Postgres",
@@ -16,6 +14,7 @@ defmodule DokkuRadar.Services.Service do
 
   require Logger
 
+  @callback links(String.t(), String.t()) :: {:ok, [String.t()]} | {:error, term()}
   def links("postgres", service) do
     dokku_host = DokkuRadar.DokkuCli.dokku_host!()
 
