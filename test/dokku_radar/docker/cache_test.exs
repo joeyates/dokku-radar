@@ -17,7 +17,8 @@ defmodule DokkuRadar.Docker.CacheTest do
     end
   end
 
-  @container_id "abc111222333"
+  @container_id "abc111222333444555666777888999aaabbbcccdddeeefff00001234567890ab"
+  @container_id_short "abc111222333"
   @stats %{"cpu_stats" => %{"cpu_usage" => %{"total_usage" => 100_000}}}
   @inspect_data %{"State" => %{"Running" => true, "RestartCount" => 0}}
 
@@ -45,6 +46,10 @@ defmodule DokkuRadar.Docker.CacheTest do
       assert Cache.container_stats(@container_id, pid) == {:ok, @stats}
     end
 
+    test "returns cached stats when looked up by abbreviated id", %{pid: pid} do
+      assert Cache.container_stats(@container_id_short, pid) == {:ok, @stats}
+    end
+
     test "returns error for an unknown container id", %{pid: pid} do
       assert {:error, :not_found} = Cache.container_stats("unknown", pid)
     end
@@ -55,6 +60,10 @@ defmodule DokkuRadar.Docker.CacheTest do
       assert Cache.container_inspect(@container_id, pid) == {:ok, @inspect_data}
     end
 
+    test "returns cached inspect data when looked up by abbreviated id", %{pid: pid} do
+      assert Cache.container_inspect(@container_id_short, pid) == {:ok, @inspect_data}
+    end
+
     test "returns error for an unknown container id", %{pid: pid} do
       assert {:error, :not_found} = Cache.container_inspect("unknown", pid)
     end
@@ -63,37 +72,6 @@ defmodule DokkuRadar.Docker.CacheTest do
   describe "status/1" do
     test "returns :ready after data is loaded", %{pid: pid} do
       assert Cache.status(pid) == :ready
-    end
-  end
-
-  @full_container_id "abc111222333444555666777888999aaabbbcccdddeeefff0001"
-  @short_container_id "abc111222333"
-
-  describe "abbreviated container id lookup" do
-    setup do
-      expect(DokkuRadar.Docker.Client.Mock, :list_containers, fn ->
-        {:ok, [%{"Id" => @full_container_id}]}
-      end)
-
-      expect(DokkuRadar.Docker.Client.Mock, :container_stats, fn @full_container_id ->
-        {:ok, @stats}
-      end)
-
-      expect(DokkuRadar.Docker.Client.Mock, :container_inspect, fn @full_container_id ->
-        {:ok, @inspect_data}
-      end)
-
-      pid = start_supervised!({Cache, @base_opts}, id: :abbrev_cache)
-      wait_for_ready(pid)
-      %{pid: pid}
-    end
-
-    test "container_stats resolves an abbreviated id", %{pid: pid} do
-      assert Cache.container_stats(@short_container_id, pid) == {:ok, @stats}
-    end
-
-    test "container_inspect resolves an abbreviated id", %{pid: pid} do
-      assert Cache.container_inspect(@short_container_id, pid) == {:ok, @inspect_data}
     end
   end
 
