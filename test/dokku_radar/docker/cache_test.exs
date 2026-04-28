@@ -17,7 +17,8 @@ defmodule DokkuRadar.Docker.CacheTest do
     end
   end
 
-  @container_id "abc111222333"
+  @container_id "abc111222333444555666777888999aaabbbcccdddeeefff00001234567890ab"
+  @container_id_short "abc111222333"
   @stats %{"cpu_stats" => %{"cpu_usage" => %{"total_usage" => 100_000}}}
   @inspect_data %{"State" => %{"Running" => true, "RestartCount" => 0}}
 
@@ -45,6 +46,10 @@ defmodule DokkuRadar.Docker.CacheTest do
       assert Cache.container_stats(@container_id, pid) == {:ok, @stats}
     end
 
+    test "returns cached stats when looked up by abbreviated id", %{pid: pid} do
+      assert Cache.container_stats(@container_id_short, pid) == {:ok, @stats}
+    end
+
     test "returns error for an unknown container id", %{pid: pid} do
       assert {:error, :not_found} = Cache.container_stats("unknown", pid)
     end
@@ -53,6 +58,10 @@ defmodule DokkuRadar.Docker.CacheTest do
   describe "container_inspect/2" do
     test "returns cached inspect data for a known container", %{pid: pid} do
       assert Cache.container_inspect(@container_id, pid) == {:ok, @inspect_data}
+    end
+
+    test "returns cached inspect data when looked up by abbreviated id", %{pid: pid} do
+      assert Cache.container_inspect(@container_id_short, pid) == {:ok, @inspect_data}
     end
 
     test "returns error for an unknown container id", %{pid: pid} do
